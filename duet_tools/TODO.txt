@@ -30,3 +30,5 @@ Change structure of module (brainstorm):
     It should be in both to_numpy and to_file. Both should also have a combine argument, probably set to False.
 
     That should get me started
+
+DUET DOESNT EXPORT MOISTURE!!
