@@ -1,3 +1,32 @@
 TODO:
 
 from_fastfuels method to set up domain
+Change structure of module (brainstorm):
+    - duet-tools : Calibrator :: quicfire-tools : SimulationInputs
+    - duet-tools : FuelType :: quicfire-tools : InputFile
+    - duet-tools : fuel types :: quicfire-tools : input files
+        - Grass
+        - Litter
+    
+    duet_run = Calibrator.import_duet(nx,ny,nz)
+    duet_run.grass.assign_targets(min = 0.2, max = 1.0)
+    duet_run.litter.assign_targets(mean = 0.5, sd = 0.05)
+    duet_run.litter.add_tree_species("longleaf_pine", layer = 2)
+    duet_run.litter.longleaf_pine.assign_targets(min = 0.8, max = 0.8)
+
+    Once you've assigned targets to each fuel type, then you can calibrate them.
+    They will calibrate based on whatever targets you supplied, and will throw an
+    error if no targets are assigned.
+
+    duet_run.grass.calibrate()
+    duet_run.litter.calibrate()
+
+    Then we can either spit out an array, or write to a dat file
+    duet_run.to_numpy()
+    duet_run.to_numpy(fuel_types = 'litter')
+    duet_run.to_file(combine = True)
+
+    ^ The argument fuel_types should take 'all' (default), 'grass', 'litter', or any of the tree species.
+    It should be in both to_numpy and to_file. Both should also have a combine argument, probably set to False.
+
+    That should get me started
