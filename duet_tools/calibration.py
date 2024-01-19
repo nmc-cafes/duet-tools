@@ -6,8 +6,7 @@ from __future__ import annotations
 # Core Imports
 from pathlib import Path
 import importlib.resources
-
-# from typing import ...
+from typing import Union, Optional
 
 # External Imports
 import numpy as np
@@ -43,27 +42,33 @@ except AttributeError:  # Python 3.6-3.8
     DATA_PATH = resource_filename("duet_tools", "data")
 
 
-class DuetCalibrator:
+class DuetCalibrator(BaseModel):
     # TODO: Instead of saving just the most recent array to self.calibrated_array, append to a list or a dict of calibrated arrays, so that you can access a bunch without reading in dat files
-    def __init__(self, nx, ny, nz, xmin, ymin, xmax, ymax, dx, dy, output_dir):
-        self.nx = nx
-        self.ny = ny
-        self.nz = nz
-        self.dx = dx
-        self.dy = dy
-        self.xmin = xmin
-        self.ymin = ymin
-        self.xmax = xmax
-        self.ymax = ymax
-        self.output_dir = Path(output_dir)
-        self.sb40_data = DATA_PATH / "sb40_parameters.csv"
-        self.calibrated = False
-        self.calibrated_array = None
-        self.calibrated_fuel_type = []
-        self.calibration_method = []
-        self.saved_files = []
-        self.original_duet_array = self._read_original_duet()
-        self.duet_dict = self._get_input_array()
+    nx: PositiveInt
+    ny: PositiveInt
+    nz: PositiveInt
+    dx: PositiveInt
+    dy: PositiveInt
+    xmin: float
+    ymin: float
+    xmax: float
+    ymax: float
+    output_dir: Union[str, Path]
+    calibrated: bool = False
+    calibrated_array: Optional[np.array] = None
+    calibrated_fuel_type: list = []
+    calibration_method: list = []
+    saved_files: list = []
+
+    @computed_field
+    @property
+    def original_duet_array(self) -> np.array:
+        return self._read_original_duet()
+
+    @computed_field
+    @property
+    def duet_dict(self) -> dict:
+        return self._get_input_array()
 
     def calibrate_max_min(
         self, fuel_type: str | list, max_val: float | list, min_val: float | list
@@ -185,7 +190,8 @@ class DuetCalibrator:
         # Query Landfire and return array of SB40 keys
         sb40_arr = self._query_landfire()
         # Import SB40 FBFM parameters table
-        sb40_params = pd.read_csv(self.sb40_data)
+        sb40_params_path = DATA_PATH / "sb40_parameters.csv"
+        sb40_params = pd.read_csv(sb40_params_path)
         # Generate dict of fastfuels bulk density values and apply to Landfire query
         sb40_dict = self._get_sb40_fuel_params(sb40_params)
         sb40_ftype, sb40_rhof = self._get_sb40_arrays(sb40_arr, sb40_dict)
