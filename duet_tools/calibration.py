@@ -45,10 +45,18 @@ except AttributeError:  # Python 3.6-3.8
 
 class DuetCalibrator:
     # TODO: Instead of saving just the most recent array to self.calibrated_array, append to a list or a dict of calibrated arrays, so that you can access a bunch without reading in dat files
-    def __init__(self, zroot, output_dir, param_dir=None):
-        self.zroot = zroot
+    def __init__(self, nx, ny, nz, xmin, ymin, xmax, ymax, dx, dy, output_dir):
+        self.nx = nx
+        self.ny = ny
+        self.nz = nz
+        self.dx = dx
+        self.dy = dy
+        self.xmin = xmin
+        self.ymin = ymin
+        self.xmax = xmax
+        self.ymax = ymax
         self.output_dir = Path(output_dir)
-        self.param_dir = Path(param_dir) if param_dir else None
+        self.sb40_data = DATA_PATH / "sb40_parameters.csv"
         self.calibrated = False
         self.calibrated_array = None
         self.calibrated_fuel_type = []
@@ -177,8 +185,7 @@ class DuetCalibrator:
         # Query Landfire and return array of SB40 keys
         sb40_arr = self._query_landfire()
         # Import SB40 FBFM parameters table
-        param_dir = self.output_dir if self.param_dir == None else self.param_dir
-        sb40_params = pd.read_csv(Path(param_dir, "sb40_parameters.csv"))
+        sb40_params = pd.read_csv(self.sb40_data)
         # Generate dict of fastfuels bulk density values and apply to Landfire query
         sb40_dict = self._get_sb40_fuel_params(sb40_params)
         sb40_ftype, sb40_rhof = self._get_sb40_arrays(sb40_arr, sb40_dict)
@@ -278,15 +285,11 @@ class DuetCalibrator:
         None
             Modified bulk density array (treesrhof.dat) is written to the QUIC-Fire directory
         """
-        nx = self.zroot.attrs["nx"]
-        ny = self.zroot.attrs["ny"]
-        nz = self.zroot.attrs["nz"]
-        qf_dim = (ny, nx, nz)
         with open(Path(self.output_dir, "treesrhof.dat"), "rb") as fin:
             qf_arr = (
                 FortranFile(fin)
                 .read_reals(dtype="float32")
-                .reshape((nz, ny, nx), order="C")
+                .reshape((self.nz, self.ny, self.nx), order="C")
             )
         if self.calibrated:
             tag = "calibrated"
@@ -415,11 +418,16 @@ class DuetCalibrator:
 
         # Create a bounding box from fuelgrid zarr
         coords = [
-            [self.zroot.attrs["xmin"], self.zroot.attrs["ymin"]],
-            [self.zroot.attrs["xmin"], self.zroot.attrs["ymax"]],
-            [self.zroot.attrs["xmax"], self.zroot.attrs["ymax"]],
-            [self.zroot.attrs["xmax"], self.zroot.attrs["ymin"]],
-            [self.zroot.attrs["xmin"], self.zroot.attrs["ymin"]],
+            self.xmin,
+            self.ymin,
+            self.xmin,
+            self.ymax,
+            self.xmax,
+            self.ymax,
+            self.xmax,
+            self.ymin,
+            self.xmin,
+            self.ymin,
         ]
         poly = geojson.Polygon(coordinates=[coords], precision=8)
         bbox = get_bbox_from_polygon(aoi_polygon=poly, crs=5070)
@@ -442,7 +450,7 @@ class DuetCalibrator:
 
         # Upsample landfire raster to the quicfire resolution
         with rio.open(Path(self.output_dir, "landfire_sb40.tif")) as sb:
-            upscale_factor = 30 / self.zroot.attrs["dx"]  # lf res/qf res
+            upscale_factor = 30 / self.dx  # lf res/qf res
             profile = sb.profile.copy()
             # resample data to target shape
             data = sb.read(
@@ -634,7 +642,7 @@ class DuetCalibrator:
         return ftype_arr, rhof_arr
 
     def _combine_fuel_types(self, calibrated_dict) -> np.array:
-        calibrated_duet = np.zeros((2, self.zroot.attrs["ny"], self.zroot.attrs["nx"]))
+        calibrated_duet = np.zeros((2, self.ny, self.nx))
         if len(calibrated_dict.keys()) == 1:
             ftype = list(calibrated_dict.keys())[0]
             if ftype == "grass":
@@ -662,8 +670,8 @@ class DuetCalibrator:
         return calibrated_duet
 
     def _read_original_duet(self):
-        nx = self.zroot.attrs["nx"]
-        ny = self.zroot.attrs["ny"]
+        nx = self.nx
+        ny = self.nx
         nz = 2  # number of duet layers, right now grass and litter. Will be number of tree species + 1
         with open(Path(self.output_dir, "surface_rhof.dat"), "rb") as fin:
             duet_rhof = (
