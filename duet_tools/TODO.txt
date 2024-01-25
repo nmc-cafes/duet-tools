@@ -97,3 +97,22 @@ Switch from OOP to FP:
             - a geojson
             - a shapely polyon
             - a list or dict of coordinates
+        When multiple fuel types use the sb40 method, landfire gets queried twice.
+            - do we have to use weird logic to solve that?
+        Lots of repetition in the calibrate function...
+            - may we should use dicts instead of classes so that we can write a function to figure out the calibration method
+            # if grass was a dict...
+            method_dict = {
+                "constant": {"func": _constant_calibration, "args": []},
+                "maxmin": {"func": _maxmin_calibration, "args": ["max", "min"]},
+                "meansd": {"func": _maxmin_calibration, "args": ["mean", "sd"]},
+                "sb40": {"func": _sb40_calibration, "args": ["bbox"]},
+            }
+            for fueltype in [grass,litter,all]:
+                for parameter in fueltype.values():
+                    for method, call in METHOD_DICT.items():
+                        if parameter["method"] == method:
+                            func = call[func]
+                            args = [parameter[arg] for arg in call[args]]
+                            _do_calibration(grass_dens,func,args)
+            - that got really convoluted.... but it is shorter

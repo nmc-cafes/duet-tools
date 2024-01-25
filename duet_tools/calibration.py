@@ -271,12 +271,37 @@ def calibrate(
     -------
     Instance of class DuetRun with calibrated fuel arrays
     """
-    if all is not None:
-        if grass is not None or litter is not None:
+    create_moisture = True if duet_run.moisture is None else False
+    if grass:
+        if grass.density:
+            grass_dens = duet_run.density[0, :, :]
+            if grass.density.method == "constant":
+                grass_dens_calibrated = _constant_calibration(
+                    grass_dens, grass.density.constant
+                )
+            if grass.density.method == "maxmin":
+                grass_dens_calibrated = _maxmin_calibration(
+                    grass_dens, grass.density.max, grass.density.min
+                )
+            if grass.density.method == "meansd":
+                grass_dens_calibrated = _meansd_calibration(
+                    grass_dens, grass.density.mean, grass.density.sd
+                )
+            if grass.density.method == "sb40":
+                grass_dens_calibrated = _sb40_calibration(
+                    grass_dens, grass.density.bbox
+                )
+        if grass.moisture:
+            if create_moisture == False:
+                grass_moist = duet_run.moisture[0, :, :]
+        if grass.depth:
+            grass_depth = duet_run.depth[0, :, :]
+
+    if all:
+        if grass or litter:
             raise ValueError(
                 "grass and litter must be None when fuel parameter targets are passed to 'all'"
             )
-    create_moisture = True if duet_run.moisture is None else False
     # TODO: write calibrate function
 
 
@@ -314,6 +339,61 @@ def _validate_target_args(method, arg_list):
         raise ValueError(
             f"Number of *args must be {method_dict[method]} when method = {method}"
         )
+
+
+def _do_calibration(array, func, args):
+    func(array, *args)
+
+
+def _maxmin_calibration(
+    x: np.array, max_val: float | int, min_val: float | int
+) -> np.array:
+    """
+    Scales and shifts values in a numpy array based on an observed range. Does not assume
+    data is normally distributed.
+    """
+    x1 = x[x > 0]
+    x2 = (x1 - np.min(x1)) / (np.max(x1) - np.min(x1))
+    x3 = x2 * (max_val - min_val)
+    x4 = x3 + min_val
+    xnew = x.copy()
+    xnew[np.where(x > 0)] = x4
+    return xnew
+
+
+def _meansd_calibration(x: np.array, mean: float | int, sd: float | int) -> np.array:
+    """
+    Scales and shifts values in a numpy array based on an observed mean and standard deviation.
+    Assumes data is normally distributed.
+    """
+    x1 = x[x > 0]
+    x2 = mean + (x1 - np.mean(x1)) * (sd / np.std(x1))
+    xnew = x.copy()
+    xnew[np.where(x > 0)] = x2
+    if np.min(xnew) < 0:
+        xnew = _truncate_at_0(xnew)
+    return xnew
+
+
+def _constant_calibration(x: np.array, constant: float) -> np.array:
+    arr = x.copy()
+    arr[arr > 0] = constant
+    return arr
+
+
+def _truncate_at_0(arr: np.array) -> np.array:
+    """
+    Artificially truncates data to positive values by scaling all values below the median
+    to the range (0, mean), effectively "compressing" those values.
+    """
+    arr2 = arr.copy()
+    bottom_half = arr2[arr2 < np.median(arr2)]
+    squeezed = (bottom_half - np.min(bottom_half)) / (
+        np.max(bottom_half) - np.min(bottom_half)
+    ) * (np.median(arr2) - 0) + 0
+    arr2[np.where(arr2 < np.median(arr2))] = squeezed
+    arr2[np.where(arr == 0)] = 0
+    return arr2
 
 
 class DuetCalibrator(BaseModel):
