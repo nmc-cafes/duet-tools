@@ -100,12 +100,13 @@ class FuelType(BaseModel):
     nz: PositiveInt
     dx: PositiveInt
     dy: PositiveInt
-    duet_bulk_density: np.array
-    duet_fuel_height: np.array
+    duet_dict: dict
     calibrated: bool = False
-    calibrated_bulk_density: Optional[np.array] = None
-    calibrated_fuel_moisture: Optional[np.array] = None
-    calibrated_fuel_height: Optional[np.array] = None
+    calibrated_dict: dict = None
+    target_min: float
+    target_max: float
+    target_mean: float
+    target_sd: float
 
     @field_validator("duet_bulk_density")
     @classmethod
@@ -117,9 +118,15 @@ class FuelType(BaseModel):
     @computed_field
     @property
     def num_layers(self):
-        return self.original_duet_array.shape[0]
+        return self.duet_bulk_density.shape[0]
 
-    def assign_targets(self):
+    def assign_targets(
+        self,
+        min: float,
+        max: float,
+        mean: float,
+        sd: float,
+    ):
         return self
 
     def calibrate(self):
@@ -129,8 +136,20 @@ class FuelType(BaseModel):
 class Grass(FuelType):
     @computed_field
     @property
-    def grass_array(self) -> np.array:
-        arr = self.original_duet_array[0, :, :]
+    def grass_bulk_density(self) -> np.array:
+        if self.calibrated_bulk_density is None:
+            arr = self.duet_bulk_density[0, :, :]
+        else:
+            arr = self.calibrated_bulk_density[0, :, :]
+        return arr
+
+    @computed_field
+    @property
+    def grass_fuel_height(self) -> np.array:
+        if self.calibrated_bulk_density is None:
+            arr = self.duet_fuel_height[0, :, :]
+        else:
+            arr = self.calibrated_fuel_height[0, :, :]
         return arr
 
 
@@ -154,14 +173,20 @@ class Litter(FuelType):
 
     @computed_field
     @property
-    def litter_array(self) -> np.array:
-        arr = self.original_duet_array[1:, :, :]
+    def litter_bulk_density(self) -> np.array:
+        if self.calibrated_bulk_density is None:
+            arr = self.duet_bulk_density[1:, :, :]
+        else:
+            arr = self.calibrated_bulk_density[1:, :, :]
         return arr
 
     @computed_field
     @property
-    def combined_litter_array(self) -> np.array:
-        arr = np.sum(self.original_duet_array[1:, :, :], axis=0)
+    def litter_fuel_height(self) -> np.array:
+        if self.calibrated_fuel_height is None:
+            arr = self.duet_fuel_height[1:, :, :]
+        else:
+            arr = self.calibrated_fuel_height[1:, :, :]
         return arr
 
 
