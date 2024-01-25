@@ -6,8 +6,7 @@ from __future__ import annotations
 # Core Imports
 from pathlib import Path
 import importlib.resources
-
-# from typing import ...
+from typing import Union, Optional, List
 
 # External Imports
 import numpy as np
@@ -28,11 +27,13 @@ from pydantic import (
     NonNegativeInt,
     PositiveFloat,
     PositiveInt,
+    Field,
     computed_field,
     field_validator,
 )
 
 # Internal Imports
+from duet_tools.utils import read_dat_to_array, write_array_to_dat
 
 
 try:  # Python 3.9+
@@ -43,19 +44,184 @@ except AttributeError:  # Python 3.6-3.8
     DATA_PATH = resource_filename("duet_tools", "data")
 
 
-class DuetCalibrator:
+class Calibrator:
+    def __init__(
+        self,
+        grass: Grass,
+        litter: Litter,
+    ):
+        self.grass = grass
+        self.litter = litter
+
+    @classmethod
+    def import_duet(
+        cls,
+        directory: Union[Path, str],
+        nx: int,
+        ny: int,
+        nz: int,
+        dx: int = 2,
+        dy: int = 2,
+    ) -> Calibrator:
+        """
+        Creates a Calibrator object from the outputs of a DUET simulation.
+        """
+        if isinstance(directory, str):
+            directory = Path(directory)
+
+        duet_bulk_density = read_dat_to_array(directory, "surface_rhof.dat", nx, ny, nz)
+        duet_fuel_height = read_dat_to_array(directory, "surface_depth.dat", nx, ny, nz)
+
+        grass = Grass(
+            nx=nx,
+            ny=ny,
+            nz=nz,
+            dx=dx,
+            dy=dy,
+            duet_bulk_density=duet_bulk_density,
+            duet_fuel_height=duet_fuel_height,
+        )
+        litter = Litter(
+            nx=nx,
+            ny=ny,
+            nz=nz,
+            dx=dx,
+            dy=dy,
+            duet_bulk_density=duet_bulk_density,
+            duet_fuel_height=duet_fuel_height,
+        )
+
+        return cls(grass=grass, litter=litter)
+
+
+class FuelType(BaseModel):
+    nx: PositiveInt
+    ny: PositiveInt
+    nz: PositiveInt
+    dx: PositiveInt
+    dy: PositiveInt
+    duet_dict: dict
+    calibrated: bool = False
+    calibrated_dict: dict = None
+    target_min: float
+    target_max: float
+    target_mean: float
+    target_sd: float
+
+    @field_validator("duet_bulk_density")
+    @classmethod
+    def validate_original_duet(cls, v: np.array, values: dict) -> np.array:
+        if v.shape != values["data"].duet_fuel_height.shape:
+            raise ValueError("DUET arrays must have the same dimensions")
+        return v
+
+    @computed_field
+    @property
+    def num_layers(self):
+        return self.duet_bulk_density.shape[0]
+
+    def assign_targets(
+        self,
+        min: float,
+        max: float,
+        mean: float,
+        sd: float,
+    ):
+        return self
+
+    def calibrate(self):
+        return self
+
+
+class Grass(FuelType):
+    @computed_field
+    @property
+    def grass_bulk_density(self) -> np.array:
+        if self.calibrated_bulk_density is None:
+            arr = self.duet_bulk_density[0, :, :]
+        else:
+            arr = self.calibrated_bulk_density[0, :, :]
+        return arr
+
+    @computed_field
+    @property
+    def grass_fuel_height(self) -> np.array:
+        if self.calibrated_bulk_density is None:
+            arr = self.duet_fuel_height[0, :, :]
+        else:
+            arr = self.calibrated_fuel_height[0, :, :]
+        return arr
+
+
+class Litter(FuelType):
+    tree_species: List[TreeSpecies] = []
+
+    def __getattr__(self, name):
+        for species in self.tree_species:
+            if name == species.name:
+                return species
+        raise AttributeError(f"Tree species {name} not found")
+
+    def assign_tree_species(self, names: List[str]):
+        if len(names) != self.num_layers:
+            raise ValueError(
+                "Number of tree species must match number of litter layers in DUET output."
+            )
+        for layer in range(self.num_layers):
+            species = TreeSpecies(name=names[layer], layer=layer + 1)
+            self.tree_species.append(species)
+
+    @computed_field
+    @property
+    def litter_bulk_density(self) -> np.array:
+        if self.calibrated_bulk_density is None:
+            arr = self.duet_bulk_density[1:, :, :]
+        else:
+            arr = self.calibrated_bulk_density[1:, :, :]
+        return arr
+
+    @computed_field
+    @property
+    def litter_fuel_height(self) -> np.array:
+        if self.calibrated_fuel_height is None:
+            arr = self.duet_fuel_height[1:, :, :]
+        else:
+            arr = self.calibrated_fuel_height[1:, :, :]
+        return arr
+
+
+class TreeSpecies(FuelType):
+    name: str
+    layer: PositiveInt = Field(ge=1)
+
+
+class DuetCalibrator(BaseModel):
     # TODO: Instead of saving just the most recent array to self.calibrated_array, append to a list or a dict of calibrated arrays, so that you can access a bunch without reading in dat files
-    def __init__(self, zroot, output_dir, param_dir=None):
-        self.zroot = zroot
-        self.output_dir = Path(output_dir)
-        self.param_dir = Path(param_dir) if param_dir else None
-        self.calibrated = False
-        self.calibrated_array = None
-        self.calibrated_fuel_type = []
-        self.calibration_method = []
-        self.saved_files = []
-        self.original_duet_array = self._read_original_duet()
-        self.duet_dict = self._get_input_array()
+    nx: PositiveInt
+    ny: PositiveInt
+    nz: PositiveInt
+    dx: PositiveInt
+    dy: PositiveInt
+    xmin: float
+    ymin: float
+    xmax: float
+    ymax: float
+    output_dir: Union[str, Path]
+    calibrated: bool = False
+    calibrated_array: Optional[np.array] = None
+    calibrated_fuel_type: list = []
+    calibration_method: list = []
+    saved_files: list = []
+
+    @computed_field
+    @property
+    def original_duet_array(self) -> np.array:
+        return self._read_original_duet()
+
+    @computed_field
+    @property
+    def duet_dict(self) -> dict:
+        return self._get_input_array()
 
     def calibrate_max_min(
         self, fuel_type: str | list, max_val: float | list, min_val: float | list
@@ -177,8 +343,8 @@ class DuetCalibrator:
         # Query Landfire and return array of SB40 keys
         sb40_arr = self._query_landfire()
         # Import SB40 FBFM parameters table
-        param_dir = self.output_dir if self.param_dir == None else self.param_dir
-        sb40_params = pd.read_csv(Path(param_dir, "sb40_parameters.csv"))
+        sb40_params_path = DATA_PATH / "sb40_parameters.csv"
+        sb40_params = pd.read_csv(sb40_params_path)
         # Generate dict of fastfuels bulk density values and apply to Landfire query
         sb40_dict = self._get_sb40_fuel_params(sb40_params)
         sb40_ftype, sb40_rhof = self._get_sb40_arrays(sb40_arr, sb40_dict)
@@ -278,15 +444,11 @@ class DuetCalibrator:
         None
             Modified bulk density array (treesrhof.dat) is written to the QUIC-Fire directory
         """
-        nx = self.zroot.attrs["nx"]
-        ny = self.zroot.attrs["ny"]
-        nz = self.zroot.attrs["nz"]
-        qf_dim = (ny, nx, nz)
         with open(Path(self.output_dir, "treesrhof.dat"), "rb") as fin:
             qf_arr = (
                 FortranFile(fin)
                 .read_reals(dtype="float32")
-                .reshape((nz, ny, nx), order="C")
+                .reshape((self.nz, self.ny, self.nx), order="C")
             )
         if self.calibrated:
             tag = "calibrated"
@@ -415,11 +577,16 @@ class DuetCalibrator:
 
         # Create a bounding box from fuelgrid zarr
         coords = [
-            [self.zroot.attrs["xmin"], self.zroot.attrs["ymin"]],
-            [self.zroot.attrs["xmin"], self.zroot.attrs["ymax"]],
-            [self.zroot.attrs["xmax"], self.zroot.attrs["ymax"]],
-            [self.zroot.attrs["xmax"], self.zroot.attrs["ymin"]],
-            [self.zroot.attrs["xmin"], self.zroot.attrs["ymin"]],
+            self.xmin,
+            self.ymin,
+            self.xmin,
+            self.ymax,
+            self.xmax,
+            self.ymax,
+            self.xmax,
+            self.ymin,
+            self.xmin,
+            self.ymin,
         ]
         poly = geojson.Polygon(coordinates=[coords], precision=8)
         bbox = get_bbox_from_polygon(aoi_polygon=poly, crs=5070)
@@ -442,7 +609,7 @@ class DuetCalibrator:
 
         # Upsample landfire raster to the quicfire resolution
         with rio.open(Path(self.output_dir, "landfire_sb40.tif")) as sb:
-            upscale_factor = 30 / self.zroot.attrs["dx"]  # lf res/qf res
+            upscale_factor = 30 / self.dx  # lf res/qf res
             profile = sb.profile.copy()
             # resample data to target shape
             data = sb.read(
@@ -634,7 +801,7 @@ class DuetCalibrator:
         return ftype_arr, rhof_arr
 
     def _combine_fuel_types(self, calibrated_dict) -> np.array:
-        calibrated_duet = np.zeros((2, self.zroot.attrs["ny"], self.zroot.attrs["nx"]))
+        calibrated_duet = np.zeros((2, self.ny, self.nx))
         if len(calibrated_dict.keys()) == 1:
             ftype = list(calibrated_dict.keys())[0]
             if ftype == "grass":
@@ -660,18 +827,6 @@ class DuetCalibrator:
             calibrated_duet[0, :, :] = calibrated_dict["grass"]
             calibrated_duet[1, :, :] = calibrated_dict["litter"]
         return calibrated_duet
-
-    def _read_original_duet(self):
-        nx = self.zroot.attrs["nx"]
-        ny = self.zroot.attrs["ny"]
-        nz = 2  # number of duet layers, right now grass and litter. Will be number of tree species + 1
-        with open(Path(self.output_dir, "surface_rhof.dat"), "rb") as fin:
-            duet_rhof = (
-                FortranFile(fin)
-                .read_reals(dtype="float32")
-                .reshape((nz, ny, nx), order="F")
-            )
-        return duet_rhof
 
     def _get_input_array(self):
         duet_dict = {}
