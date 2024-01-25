@@ -91,6 +91,9 @@ Switch from OOP to FP:
         Objects:
             - DuetRun: stores arrays, has to_numpy and to_file methods
             - Targets: stores target methods and values
-            - FuelParameters: stores targets for each fuel type
-        fueltype_targets just creates a dictionary of targets and methods for each fuel type
-
+            - FuelParameters: stores and VALIDATES targets for each fuel type
+        Definitely not sure Targets and FuelParameters should exist...
+        When method = "sb40", the bbox argument should potentially be:
+            - a geojson
+            - a shapely polyon
+            - a list or dict of coordinates

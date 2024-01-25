@@ -44,6 +44,278 @@ except AttributeError:  # Python 3.6-3.8
     DATA_PATH = resource_filename("duet_tools", "data")
 
 
+class DuetRun:
+    """
+    Class containing all arrays for a DUET run.
+    """
+
+    def __init__(self, density: np.array, depth: np.array, moisture: np.array = None):
+        self.density = density
+        self.moisture = moisture
+        self.depth = depth
+
+    def to_quicfire(self, directory: str | Path):
+        """
+        Writes a DuetRun object to QUIC-fire fuel .dat inputs to a directory:
+        treesrhof.dat, treesmoist.dat, treesfueldepth.dat
+
+        Parameters
+        ----------
+        directory : str | Path
+            Path to directory for writing QUIC-fire files
+        """
+        if isinstance(directory, str):
+            directory = Path(directory)
+        # TODO: write to_quicfire
+
+    def to_numpy(self, fueltype: str, parameter: str):
+        fueltypes_allowed = ["grass", "litter", "separated", "integrated"]
+        parameters_allowed = ["density", "moisture", "depth"]
+        if fueltype not in fueltypes_allowed:
+            raise ValueError(
+                f"Fueltype {fueltype} not supported. Must be one of {fueltypes_allowed}"
+            )
+        if parameter not in parameters_allowed:
+            raise ValueError(
+                f"Parameter {parameter} not supported. Must be one of {parameters_allowed}"
+            )
+        # TODO: write to_numpy
+
+
+class Targets:
+    """
+    Class containing target methods and values for fuel parameters
+    """
+
+    # TODO: Targets and FuelParameters are basically dicts. Should I not have them be classes at all?
+
+    def __init__(
+        self,
+        method: str = None,
+        max: float = None,
+        min: float = None,
+        mean: float = None,
+        sd: float = None,
+        constant: float = None,
+        bbox: geojson = None,
+    ):
+        self.method = self._validate_method(method)
+        self.max = max
+        self.min = min
+        self.mean = mean
+        self.sd = sd
+        self.constant = constant
+        self.bbox = bbox
+
+    def _validate_method(self, method) -> str:
+        methods_allowed = ["maxmin", "meansd", "constant", "sb40"]
+        if method not in methods_allowed:
+            raise ValueError(
+                f"Method {method} not supported. Must be one of {methods_allowed}"
+            )
+        return method
+
+
+class FuelParameters:
+    """
+    Class containing and validating targets for each fuel parameter
+    """
+
+    def __init__(
+        self, density: Targets = None, moisture: Targets = None, depth: Targets = None
+    ):
+        self.density = self._validate_density(density)
+        self.moisture = self._validate_moisture(moisture)
+        self.depth = self._validate_depth(depth)
+
+    def _validate_density(self, density) -> Targets:
+        # TODO: write _validate_density
+        return density
+
+    def _validate_moisture(self, moisture) -> Targets:
+        # TODO: write _validate_moisture
+        return moisture
+
+    def _validate_depth(self, depth) -> Targets:
+        # TODO: write _validate_depth
+        return depth
+
+
+def import_duet(directory: str | Path, nx: int, ny: int, nz: int = 2) -> DuetRun:
+    """
+    Creates a DuetRun object from DUET output files
+
+    Parameters
+    ----------
+    directory : str | Path
+        Path to directory storing the DUET output files surface_rhof.dat and surface_depth.dat
+    nx: int
+        Number of DUET domain cells in the x-direction
+    ny: int
+        Number of DUET domain cells in the y-direction
+    nz: int
+        Number of layers (fuel types) in the DUET outputs. Defaults to 2 (grass and litter).
+
+    Returns
+    -------
+    Instance of class DuetRun
+    """
+    if isinstance(directory, str):
+        directory = Path(directory)
+    density = read_dat_to_array(
+        directory=directory, filename="surface_rhof.dat", nx=nx, ny=ny, nz=nz
+    )
+    depth = read_dat_to_array(
+        directory=directory, filename="surface_depth.dat", nx=nx, ny=ny, nz=nz
+    )
+    return DuetRun(density=density, depth=depth)
+
+
+def assign_targets(*args, method: str, bbox: geojson = None) -> Targets:
+    """
+    Assigns target values and calculation method for exactly one fuel type and parameter
+
+    Parameters
+    ----------
+    method : str
+        Calibration method for the target values provided. Must be one of:
+        "constant", "maxmin", "meansd", "sb40". Each method should be followed
+        by a corresponding number *args: "constant" takes a single value, "maxmin" takes
+        2 values (maximum, minimum), "meansd" takes 2 values (mean, standard deviation),
+        and "sb40" takes no arguments.
+
+    Returns
+    -------
+    Instance of class Targets
+    """
+
+    methods_allowed = ["maxmin", "meansd", "constant", "sb40"]
+    if method not in methods_allowed:
+        raise ValueError(
+            f"Method {method} not supported. Must be one of {methods_allowed}"
+        )
+    _validate_target_args(method, args)
+    if method == "maxmin":
+        targ_max = args[0]
+        targ_min = args[1]
+        if targ_max <= targ_min:
+            raise ValueError("Target maximum must be greater than target minimum")
+        return Targets(method=method, max=targ_max, min=targ_min)
+    if method == "meansd":
+        targ_mean = args[0]
+        targ_sd = args[1]
+        if targ_mean < targ_sd:
+            warnings.warn(
+                "Target mean is smaller than target sd. Are they in the wrong order?"
+            )
+        return Targets(method=method, mean=targ_mean, sd=targ_sd)
+    if method == "constant":
+        targ = args[0]
+        return Targets(method=method, constant=targ)
+    if method == "sb40":
+        if bbox is None:
+            raise ValueError("bbox must be provided when method = 'sb40'")
+        return Targets(method=method, bbox=bbox)
+
+
+def fueltype_targets(
+    density: Targets = None, moisture: Targets = None, depth: Targets = None
+):
+    """
+    Assembles calibration targets for each fuel parameter for exactly one fuel type.
+
+    Parameters
+    ----------
+    density : Targets
+        An object of class Targets defining the calibration method and target values
+        for bulk density
+    moisture : Targets
+        An object of class Targets defining the calibration method and target values
+        for bulk density
+    depth : Targets
+        An object of class Targets defining the calibration method and target values
+        for bulk density
+
+    Return
+    ------
+    Instance of calss FuelParameters
+    """
+    return FuelParameters(density=density, moisture=moisture, depth=depth)
+
+
+def calibrate(
+    duet_run: DuetRun,
+    grass: FuelParameters = None,
+    litter: FuelParameters = None,
+    all: FuelParameters = None,
+):
+    """
+    Calibrates the arrays in a DuetRun object using the provided targets and methods for one
+    or more fuel types.
+
+    Parameters
+    ----------
+    duet_run : DuetRun
+        The DUET run to calibrate
+    grass : FuelParameters
+        FuelParameters object containing calibration methods and target values for each fuel parameter,
+        to be applied to the grass layer of the DUET arrays.
+    litter :
+        FuelParameters object containing calibration methods and target values for each fuel parameter,
+        to be applied to the litter layer of the DUET arrays.
+    all :
+        FuelParameters object containing calibration methods and target values for each fuel parameter,
+        to be applied to the integrated fuel layers of the DUET arrays.
+
+    Returns
+    -------
+    Instance of class DuetRun with calibrated fuel arrays
+    """
+    if all is not None:
+        if grass is not None or litter is not None:
+            raise ValueError(
+                "grass and litter must be None when fuel parameter targets are passed to 'all'"
+            )
+    create_moisture = True if duet_run.moisture is None else False
+    # TODO: write calibrate function
+
+
+def get_unit_from_fastfuels(zroot):
+    """
+    Creates a geojson bounding box of a fastfuels domain.
+
+    Returns
+    -------
+    geojson
+    """
+    # TODO: write get_unit_from_fastfuels
+
+
+def get_unit_from_shapefile(directory: str | Path):
+    """
+    Reads in a shapefile and returns a geojson bounding box.
+
+    Returns
+    -------
+    geojson
+    """
+    # TODO: write get_unit_from_shapefile
+
+
+def write_numpy_to_quicfire(array: np.array, directory: str | Path, filename: str):
+    if isinstance(directory, str):
+        directory = Path(directory)
+    write_array_to_dat(array=array, dat_name=filename, output_dir=directory)
+
+
+def _validate_target_args(method, arg_list):
+    method_dict = {"sb40": 0, "constant": 1, "maxmin": 2, "meansd": 2}
+    if len(arg_list) != method_dict[method]:
+        raise ValueError(
+            f"Number of *args must be {method_dict[method]} when method = {method}"
+        )
+
+
 class DuetCalibrator(BaseModel):
     # TODO: Instead of saving just the most recent array to self.calibrated_array, append to a list or a dict of calibrated arrays, so that you can access a bunch without reading in dat files
     nx: PositiveInt
