@@ -50,11 +50,47 @@ Change structure of module (brainstorm):
     duet_run.litter.add_tree_species("turkey_oak", layer = 2)
     duet_run.litter.longleaf_pine.target_bulk_density(mean...)
 
-    
-    
-
 DUET DOESNT EXPORT MOISTURE!!
 
 When we assign targets for bulk density, are we assigning CELL bulk density, or FUEL bulk density?
 Would it make more sense to assign FUEL bulk density??
-Does DUET have a constant fuel bulk density that it uses to calculate cell bulk density?
+Does DUET have a constant fuel bulk density that it uses to calculate cell bulk density? NO!
+
+Switch from OOP to FP:
+    - Brainstorm how it would be used
+        # first create DuetRun class using import_duet
+        duet_run = import_duet(directory, nx, ny, nz)
+
+        # assign targets from user
+        litter_moisture = assign_targets(method = "constant", constant)
+        litter_density = assign_targets(method = "maxmin", max, min)
+        litter_depth = assign_targets(method = "maxmin", max, min)
+
+        # assign targets from landfire
+        unit_fastfuels = get_unit_from_fastfuels(zroot)
+        unit_geojson = get_unit_from_geojson(directory)
+        grass_sb40 = assign_targets(method = "sb40", bbox = unit_geojson)
+
+        # combine targets for each fuel type
+        litter_targets = fueltype_targets(moisture=litter_moisture,density=litter_density,depth=litter_depth)
+        grass_targets = fueltype_targets(moisture=grass_sb40,density=grass_sb40,depth=grass_sb40)
+        
+        # use the calibrate function to create a new DuetRun object
+        calibrated_duet = calibrate(duet_run, grass=grass_targets, litter=litter_targets)
+
+        # access arrays from DuetRun
+        litter_moisture = calibrated_duet.to_numpy(fueltype = "litter", parameter = "moisture")
+        separated_density = calibrated_duet.to_numpy(fueltype = "separated", parameter = "density") #3D array of all fuels
+        integrated_depth = calibrated_duet.to_numpy(fueltype = "integrated", parameter = "depth") #2D array of all fuels
+
+        # write to dat file(s)
+        duet_run.to_quicfire(directory) # writes treesrhof.dat, treesmoist.dat, and treesfueldepth.dat 
+        write_numpy_to_quicfire(litter_moisture, directory, "treesmoist.dat")
+
+    - Notes:
+        Objects:
+            - DuetRun: stores arrays, has to_numpy and to_file methods
+            - Targets: stores target methods and values
+            - FuelParameters: stores targets for each fuel type
+        fueltype_targets just creates a dictionary of targets and methods for each fuel type
+
