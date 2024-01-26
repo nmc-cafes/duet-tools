@@ -238,7 +238,7 @@ def calibrate(
         "constant": {"func": _constant_calibration, "args": ["constant"]},
         "maxmin": {"func": _maxmin_calibration, "args": ["max", "min"]},
         "meansd": {"func": _meansd_calibration, "args": ["mean", "sd"]},
-        "sb40": {"func": _sb40_calibration, "args": ["bbox"]},
+        # "sb40": {"func": _sb40_calibration, "args": ["bbox"]},
     }
     for fueltype in [grass, litter, all]:
         for parameter in fueltype.values():
