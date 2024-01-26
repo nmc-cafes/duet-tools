@@ -26,3 +26,8 @@ from duet_tools.utils import write_array_to_dat, read_dat_to_array
 TEST_DIR = Path(__file__).parent
 TMP_DIR = TEST_DIR / "tmp"
 TMP_DIR.mkdir(exist_ok=True)
+
+
+class TestDuetRun:
+    def test_import_duet(self):
+        duet_run = import_duet(directory=TMP_DIR, nx=252, ny=252)
