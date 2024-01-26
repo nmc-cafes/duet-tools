@@ -82,65 +82,6 @@ class DuetRun:
         # TODO: write to_numpy
 
 
-class Targets:
-    """
-    Class containing target methods and values for fuel parameters
-    """
-
-    # TODO: Targets and FuelParameters are basically dicts. Should I not have them be classes at all?
-
-    def __init__(
-        self,
-        method: str = None,
-        max: float = None,
-        min: float = None,
-        mean: float = None,
-        sd: float = None,
-        constant: float = None,
-        bbox: geojson = None,
-    ):
-        self.method = self._validate_method(method)
-        self.max = max
-        self.min = min
-        self.mean = mean
-        self.sd = sd
-        self.constant = constant
-        self.bbox = bbox
-
-    def _validate_method(self, method) -> str:
-        methods_allowed = ["maxmin", "meansd", "constant", "sb40"]
-        if method not in methods_allowed:
-            raise ValueError(
-                f"Method {method} not supported. Must be one of {methods_allowed}"
-            )
-        return method
-
-
-class FuelParameters:
-    """
-    Class containing and validating targets for each fuel parameter
-    """
-
-    def __init__(
-        self, density: Targets = None, moisture: Targets = None, depth: Targets = None
-    ):
-        self.density = self._validate_density(density)
-        self.moisture = self._validate_moisture(moisture)
-        self.depth = self._validate_depth(depth)
-
-    def _validate_density(self, density) -> Targets:
-        # TODO: write _validate_density
-        return density
-
-    def _validate_moisture(self, moisture) -> Targets:
-        # TODO: write _validate_moisture
-        return moisture
-
-    def _validate_depth(self, depth) -> Targets:
-        # TODO: write _validate_depth
-        return depth
-
-
 def import_duet(directory: str | Path, nx: int, ny: int, nz: int = 2) -> DuetRun:
     """
     Creates a DuetRun object from DUET output files
@@ -171,7 +112,7 @@ def import_duet(directory: str | Path, nx: int, ny: int, nz: int = 2) -> DuetRun
     return DuetRun(density=density, depth=depth)
 
 
-def assign_targets(*args, method: str, bbox: geojson = None) -> Targets:
+def assign_targets(*args, method: str, bbox: geojson = None) -> dict:
     """
     Assigns target values and calculation method for exactly one fuel type and parameter
 
@@ -200,7 +141,7 @@ def assign_targets(*args, method: str, bbox: geojson = None) -> Targets:
         targ_min = args[1]
         if targ_max <= targ_min:
             raise ValueError("Target maximum must be greater than target minimum")
-        return Targets(method=method, max=targ_max, min=targ_min)
+        return {"method": method, "max": targ_max, "min": targ_min}
     if method == "meansd":
         targ_mean = args[0]
         targ_sd = args[1]
@@ -208,19 +149,17 @@ def assign_targets(*args, method: str, bbox: geojson = None) -> Targets:
             warnings.warn(
                 "Target mean is smaller than target sd. Are they in the wrong order?"
             )
-        return Targets(method=method, mean=targ_mean, sd=targ_sd)
+        return {"method": method, "mean": targ_mean, "sd": targ_sd}
     if method == "constant":
         targ = args[0]
-        return Targets(method=method, constant=targ)
+        return ({"method": method, "constant": targ},)
     if method == "sb40":
         if bbox is None:
             raise ValueError("bbox must be provided when method = 'sb40'")
-        return Targets(method=method, bbox=bbox)
+        return {"method": method, "bbox": bbox}
 
 
-def fueltype_targets(
-    density: Targets = None, moisture: Targets = None, depth: Targets = None
-):
+def fueltype_targets(density: dict = None, moisture: dict = None, depth: dict = None):
     """
     Assembles calibration targets for each fuel parameter for exactly one fuel type.
 
@@ -240,15 +179,21 @@ def fueltype_targets(
     ------
     Instance of calss FuelParameters
     """
-    return FuelParameters(density=density, moisture=moisture, depth=depth)
+    in_dict = {"density": density, "moisture": moisture, "depth": depth}
+    out_dict = {}
+    for name, targ_dict in in_dict.items():
+        if targ_dict:
+            out_dict[name] = targ_dict
+
+    return out_dict
 
 
 def calibrate(
     duet_run: DuetRun,
-    grass: FuelParameters = None,
-    litter: FuelParameters = None,
-    all: FuelParameters = None,
-):
+    grass: dict = None,
+    litter: dict = None,
+    all: dict = None,
+) -> DuetRun:
     """
     Calibrates the arrays in a DuetRun object using the provided targets and methods for one
     or more fuel types.
@@ -271,38 +216,37 @@ def calibrate(
     -------
     Instance of class DuetRun with calibrated fuel arrays
     """
-    create_moisture = True if duet_run.moisture is None else False
-    if grass:
-        if grass.density:
-            grass_dens = duet_run.density[0, :, :]
-            if grass.density.method == "constant":
-                grass_dens_calibrated = _constant_calibration(
-                    grass_dens, grass.density.constant
-                )
-            if grass.density.method == "maxmin":
-                grass_dens_calibrated = _maxmin_calibration(
-                    grass_dens, grass.density.max, grass.density.min
-                )
-            if grass.density.method == "meansd":
-                grass_dens_calibrated = _meansd_calibration(
-                    grass_dens, grass.density.mean, grass.density.sd
-                )
-            if grass.density.method == "sb40":
-                grass_dens_calibrated = _sb40_calibration(
-                    grass_dens, grass.density.bbox
-                )
-        if grass.moisture:
-            if create_moisture == False:
-                grass_moist = duet_run.moisture[0, :, :]
-        if grass.depth:
-            grass_depth = duet_run.depth[0, :, :]
-
     if all:
         if grass or litter:
             raise ValueError(
                 "grass and litter must be None when fuel parameter targets are passed to 'all'"
             )
-    # TODO: write calibrate function
+    if duet_run.moisture is None:
+        duet_run.moisture = _moisture_weights_from_density(duet_run.density)
+    duet_dict = {
+        "density": {
+            "grass": duet_run.density[0, :, :],
+            "litter": duet_run.density[1, :, :],
+        },
+        "moisture": {
+            "grass": duet_run.moisture[0, :, :],
+            "litter": duet_run.moisture[1, :, :],
+        },
+        "depth": {"grass": duet_run.depth[0, :, :], "litter": duet_run.depth[1, :, :]},
+    }
+    method_dict = {
+        "constant": {"func": _constant_calibration, "args": ["constant"]},
+        "maxmin": {"func": _maxmin_calibration, "args": ["max", "min"]},
+        "meansd": {"func": _meansd_calibration, "args": ["mean", "sd"]},
+        "sb40": {"func": _sb40_calibration, "args": ["bbox"]},
+    }
+    for fueltype in [grass, litter, all]:
+        for parameter in fueltype.values():
+            for method, call in method_dict.items():
+                if parameter["method"] == method:
+                    func = call[func]
+                    args = [parameter[arg] for arg in call[args]]
+                    _do_calibration(duet_dict[parameter][fueltype], func, args)
 
 
 def get_unit_from_fastfuels(zroot):
@@ -375,10 +319,18 @@ def _meansd_calibration(x: np.array, mean: float | int, sd: float | int) -> np.a
     return xnew
 
 
+# TODO: add option for fuel vs cell bulk density?
 def _constant_calibration(x: np.array, constant: float) -> np.array:
     arr = x.copy()
     arr[arr > 0] = constant
     return arr
+
+
+def _moisture_weights_from_density(density_array: np.array) -> np.array:
+    moisture_array = density_array.copy()
+    for i in moisture_array.shape[0]:
+        moisture_array[i, :, :] = _maxmin_calibration(density_array[i, :, :], 1, 0)
+    return moisture_array
 
 
 def _truncate_at_0(arr: np.array) -> np.array:

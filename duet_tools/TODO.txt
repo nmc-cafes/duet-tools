@@ -103,7 +103,7 @@ Switch from OOP to FP:
             - may we should use dicts instead of classes so that we can write a function to figure out the calibration method
             # if grass was a dict...
             method_dict = {
-                "constant": {"func": _constant_calibration, "args": []},
+                "constant": {"func": _constant_calibration, "args": ["constant"]},
                 "maxmin": {"func": _maxmin_calibration, "args": ["max", "min"]},
                 "meansd": {"func": _maxmin_calibration, "args": ["mean", "sd"]},
                 "sb40": {"func": _sb40_calibration, "args": ["bbox"]},
