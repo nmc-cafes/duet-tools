@@ -47,7 +47,26 @@ class DuetRun:
         self.moisture = moisture
         self.depth = depth
 
-    def to_quicfire(self, directory: str | Path):
+    def add_moisture_array(self, moisture_array=np.ndarray) -> None:
+        """
+        Add an array of moisture values to the DUET run
+
+        Parameters
+        ----------
+        moisture_array : np.ndarray
+            3D array of fuel moisture content values. Must be the same shape as
+            density and depth arrays already present in the object. Values must
+            be positive where fuel is present.
+
+        Returns
+        -------
+        None :
+            Sets the DuetRun.moisture attribute to the input array
+        """
+        _validate_input_moisture(moisture_array, self.density)
+        self.moisture = moisture_array
+
+    def to_quicfire(self, directory: str | Path) -> None:
         """
         Writes a DuetRun object to QUIC-fire fuel .dat inputs to a directory:
         treesrhof.dat, treesmoist.dat, treesfueldepth.dat
@@ -56,21 +75,48 @@ class DuetRun:
         ----------
         directory : str | Path
             Path to directory for writing QUIC-fire files
+
+        Returns
+        -------
+        None :
+            Writes QUIC-Fire .dat files to the provided directory.
         """
         if isinstance(directory, str):
             directory = Path(directory)
         # TODO: write to_quicfire
 
-    def to_numpy(self, fueltype: str, parameter: str):
+    def to_numpy(self, fuel_type: str, fuel_parameter: str) -> np.ndarray:
+        """
+        Returns a numpy array of the provided fuel type and parameter.
+
+        Parameters
+        ----------
+        fuel_type : str
+            Fuel type of desired array. Must be one of "grass", "litter", "separated",
+            or "integrated".
+            "separated" : returns a 3D array of shape (2,ny,nx), where the first layer
+                is grass, and the second layer is litter.
+            "integrated" : returns a vertically-integrated array of both fuel types.
+                Array remains 3D, which shape (1,nx,ny). Integration method depends on
+                fuel parameter.
+        fuel_parameter : str
+            Fuel parameter of desired array. Must be one of "density", "moisture", or
+            "depth".
+
+        Returns
+        -------
+        np.ndarray :
+            3D array of the provided fuel type and parameter.
+        """
         fueltypes_allowed = ["grass", "litter", "separated", "integrated"]
         parameters_allowed = ["density", "moisture", "depth"]
-        if fueltype not in fueltypes_allowed:
+        if fuel_type not in fueltypes_allowed:
             raise ValueError(
-                f"Fueltype {fueltype} not supported. Must be one of {fueltypes_allowed}"
+                f"Fuel type {fuel_type} not supported. Must be one of {fueltypes_allowed}"
             )
-        if parameter not in parameters_allowed:
+        if fuel_parameter not in parameters_allowed:
             raise ValueError(
-                f"Parameter {parameter} not supported. Must be one of {parameters_allowed}"
+                f"Fuel parameter {fuel_parameter} not supported. Must be one of {parameters_allowed}"
             )
         # TODO: write to_numpy
 
@@ -84,6 +130,17 @@ class Targets:
         self.method = method
         self.args = args
         self.targets = targets
+        self.calibration_function = self._get_calibration_function(method)
+
+    def _get_calibration_function(self, method):
+        if method == "maxmin":
+            return _maxmin_calibration
+        if method == "meansd":
+            return _meansd_calibration
+        if method == "constant":
+            return _constant_calibration
+        if method == "sb40":
+            return _sb40_calibration
 
 
 class FuelParameters:
@@ -190,10 +247,7 @@ def assign_fuel_parameters(fuel_type: str, **kwargs: Targets):
 
 
 def calibrate(
-    duet_run: DuetRun,
-    grass: FuelParameters = None,
-    litter: FuelParameters = None,
-    all: FuelParameters = None,
+    duet_run: DuetRun, fuel_type_targets: list(FuelParameters) | FuelParameters
 ) -> DuetRun:
     """
     Calibrates the arrays in a DuetRun object using the provided targets and methods for one
@@ -204,46 +258,30 @@ def calibrate(
     duet_run : DuetRun
         The DUET run to calibrate
 
+    fuel_type_targets : FuelParameters | list(FuelParameters)
+        FuelParameters object or list of FuelParameters objects for the fuel types
+        to be calibrated.
+
     Returns
     -------
     Instance of class DuetRun with calibrated fuel arrays
     """
-    if all:
-        if grass or litter:
-            raise ValueError(
-                "grass and litter must be None when fuel parameter targets are passed to 'all'"
+    if isinstance(fuel_type_targets, FuelParameters):
+        fuel_type_targets = [fuel_type_targets]
+    _validate_fuel_parameters(fuel_type_targets)
+
+    for fueltype_targ in fuel_type_targets:
+        fueltype = fueltype_targ.fuel_type
+        for i in range(len(fueltype_targ.parameters)):
+            fuelparam = fueltype_targ.parameters[i]
+            array_to_calibrate = _get_array_to_calibrate(duet_run, fueltype, fuelparam)
+            calibrated_array = _do_calibration(
+                array_to_calibrate, fueltype_targ.targets[i]
             )
-    if duet_run.moisture is None:
-        duet_run.moisture = _moisture_weights_from_density(duet_run.density)
-    duet_dict = {
-        "density": {
-            "grass": duet_run.density[0, :, :],
-            "litter": duet_run.density[1, :, :],
-        },
-        "moisture": {
-            "grass": duet_run.moisture[0, :, :],
-            "litter": duet_run.moisture[1, :, :],
-        },
-        "depth": {"grass": duet_run.depth[0, :, :], "litter": duet_run.depth[1, :, :]},
-    }
-    fueltype_dict = {"grass": grass, "litter": litter, "all": all}
-    method_dict = {
-        "constant": {"func": _constant_calibration, "args": ["constant"]},
-        "maxmin": {"func": _maxmin_calibration, "args": ["max", "min"]},
-        "meansd": {"func": _meansd_calibration, "args": ["mean", "sd"]},
-        # "sb40": {"func": _sb40_calibration, "args": ["bbox"]},
-    }
-    new_duet_run = DuetRun()
-    for fueltype, ft_dict in fueltype_dict.items():
-        if ft_dict:
-            for parameter, param_dict in ft_dict.items():
-                if param_dict:
-                    for method, call in method_dict.items():
-                        if param_dict["method"] == method:
-                            func = call["func"]
-                            args = [param_dict[arg] for arg in call["args"]]
-                            array = duet_dict[parameter][fueltype]
-                            calibrated_array = _do_calibration(array, func, args)
+            duet_run = _add_calibrated_array(
+                duet_run, calibrated_array, fueltype, fuelparam
+            )
+    return duet_run
 
 
 def get_unit_from_fastfuels(zroot):
@@ -283,7 +321,7 @@ def _validate_method(method):
 
 
 def _validate_fuel_type(fuel_type):
-    fueltypes_allowed = ["maxmin", "meansd", "constant", "sb40"]
+    fueltypes_allowed = ["grass", "litter", "all"]
     if fuel_type not in fueltypes_allowed:
         raise ValueError(
             f"Method {fuel_type} not supported. Must be one of {fueltypes_allowed}"
@@ -315,17 +353,67 @@ def _validate_target_kwargs(method: str, kwargs: dict):
             )
 
 
-def _do_calibration(array, func, args):
-    return func(array, *args)
+def _validate_fuel_parameters(fuel_parameters):
+    fuel_types = [param.fuel_type for param in fuel_parameters]
+    if "all" in fuel_types and len(fuel_types) > 1:
+        raise ValueError(
+            "When fuel parameter targets are assigned to all fuel types,"
+            "no other fuel parameter objects should be provided"
+        )
 
 
-def _maxmin_calibration(
-    x: np.ndarray, max_val: float | int, min_val: float | int
-) -> np.ndarray:
+def _validate_input_moisture(moisture: np.ndarray, density: np.ndarray):
+    if moisture.shape != density.shape:
+        raise ValueError(
+            f"Input array shape {moisture.shape} must match existing arrays {density.shape}."
+        )
+    if density[np.where(moisture == 0)].any() != 0:
+        raise ValueError("Value of moisture array cannot be zero where fuel is present")
+
+
+def _get_array_to_calibrate(duet_run: DuetRun, fueltype: str, fuelparam: str):
+    if fuelparam == "density":
+        if fueltype == "grass":
+            return duet_run.density[0, :, :]
+        if fueltype == "litter":
+            return duet_run.density[1, :, :]
+        return np.sum(duet_run.density, axis=0)
+    if fuelparam == "depth":
+        if fueltype == "grass":
+            return duet_run.depth[0, :, :]
+        if fueltype == "litter":
+            return duet_run.depth[1, :, :]
+        return np.max(duet_run.depth, axis=0)
+    if fuelparam == "moisture":
+        if duet_run.moisture:
+            if fueltype == "grass":
+                return duet_run.moisture[0, :, :]
+            if fueltype == "litter":
+                return duet_run.moisture[1, :, :]
+            density_weights = duet_run.density.copy()
+            density_weights[density_weights == 0] = 0.01
+            return np.average(duet_run.moisture, weights=density_weights, axis=0)
+        raise ValueError(
+            "No moisture array available to calibrate. Please add moisture"
+            "array using DuetRun.add_moisture_array"
+        )
+
+
+def _do_calibration(array: np.ndarray, target_obj: Targets):
+    kwarg_dict = {}
+    for i in range(len(target_obj.args)):
+        kwarg_dict[target_obj.args[i]] = target_obj.targets[i]
+    new_array = target_obj.calibration_function(array, **kwarg_dict)
+    return new_array
+
+
+def _maxmin_calibration(x: np.ndarray, **kwargs: float) -> np.ndarray:
     """
     Scales and shifts values in a numpy array based on an observed range. Does not assume
     data is normally distributed.
     """
+    max_val = kwargs["max"]
+    min_val = kwargs["min"]
     x1 = x[x > 0]
     x2 = (x1 - np.min(x1)) / (np.max(x1) - np.min(x1))
     x3 = x2 * (max_val - min_val)
@@ -335,15 +423,15 @@ def _maxmin_calibration(
     return xnew
 
 
-def _meansd_calibration(
-    x: np.ndarray, mean: float | int, sd: float | int
-) -> np.ndarray:
+def _meansd_calibration(x: np.ndarray, **kwargs: float) -> np.ndarray:
     """
     Scales and shifts values in a numpy array based on an observed mean and standard deviation.
     Assumes data is normally distributed.
     """
+    mean_val = kwargs["mean"]
+    sd_val = kwargs["sd"]
     x1 = x[x > 0]
-    x2 = mean + (x1 - np.mean(x1)) * (sd / np.std(x1))
+    x2 = mean_val + (x1 - np.mean(x1)) * (sd_val / np.std(x1))
     xnew = x.copy()
     xnew[np.where(x > 0)] = x2
     if np.min(xnew) < 0:
@@ -352,17 +440,49 @@ def _meansd_calibration(
 
 
 # TODO: add option for fuel vs cell bulk density?
-def _constant_calibration(x: np.ndarray, constant: float) -> np.ndarray:
+def _constant_calibration(x: np.ndarray, **kwargs: float) -> np.ndarray:
+    constant = kwargs["target"]
     arr = x.copy()
     arr[arr > 0] = constant
     return arr
 
 
-def _moisture_weights_from_density(density_array: np.ndarray) -> np.ndarray:
-    moisture_array = density_array.copy()
-    for i in range(moisture_array.shape[0]):
-        moisture_array[i, :, :] = _maxmin_calibration(density_array[i, :, :], 1, 0)
-    return moisture_array
+def _add_calibrated_array(
+    duet_run: DuetRun, calibrated_array: np.ndarray, fueltype: str, fuelparam: str
+) -> DuetRun:
+    for param in ["density", "moisture", "depth"]:
+        if fuelparam == param:
+            if fueltype == "grass":
+                duet_run.__dict__[param][0, :, :] = calibrated_array
+            if fueltype == "litter":
+                duet_run.__dict__[param][1, :, :] = calibrated_array
+            if fueltype == "all":
+                duet_run.__dict__[param] = _separate_2d_array(
+                    calibrated_array, param, duet_run.density
+                )
+    return duet_run
+
+
+def _separate_2d_array(
+    calibrated: np.ndarray, param: str, duet_run: DuetRun
+) -> np.ndarray:
+    separated = np.array([calibrated, calibrated])
+    if param == "density":
+        weights = duet_run.density.copy()
+        weights[0, :, :] = duet_run.density[0, :, :] / np.sum(duet_run.density, axis=0)
+        weights[1, :, :] = duet_run.density[1, :, :] / np.sum(duet_run.density, axis=0)
+        separated[0, :, :] = calibrated * weights[0, :, :]
+        separated[1, :, :] = calibrated * weights[1, :, :]
+    if param == "moisture":
+        separated[0, :, :][np.where(duet_run.moisture[0, :, :] == 0)] = 0
+        separated[1, :, :][np.where(duet_run.moisture[1, :, :] == 0)] = 0
+    if param == "depth":
+        weights = duet_run.depth.copy()
+        weights[0, :, :] = duet_run.depth[0, :, :] / np.max(duet_run.depth, axis=0)
+        weights[1, :, :] = duet_run.depth[1, :, :] / np.max(duet_run.depth, axis=0)
+        separated[0, :, :] = calibrated * weights[0, :, :]
+        separated[1, :, :] = calibrated * weights[1, :, :]
+    return separated
 
 
 def _truncate_at_0(arr: np.ndarray) -> np.ndarray:
