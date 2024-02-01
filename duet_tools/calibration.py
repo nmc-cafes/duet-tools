@@ -75,6 +75,63 @@ class DuetRun:
         # TODO: write to_numpy
 
 
+class Targets:
+    """
+    Class containing target methods and values for fuel parameters
+    """
+
+    def __init__(
+        self,
+        method: str = None,
+        max: float = None,
+        min: float = None,
+        mean: float = None,
+        sd: float = None,
+        constant: float = None,
+        bbox: geojson = None,
+    ):
+        self.method = self._validate_method(method)
+        self.max = max
+        self.min = min
+        self.mean = mean
+        self.sd = sd
+        self.constant = constant
+        self.bbox = bbox
+
+    def _validate_method(self, method) -> str:
+        methods_allowed = ["maxmin", "meansd", "constant", "sb40"]
+        if method not in methods_allowed:
+            raise ValueError(
+                f"Method {method} not supported. Must be one of {methods_allowed}"
+            )
+        return method
+
+
+class FuelParameters:
+    """
+    Class containing and validating targets for each fuel parameter
+    """
+
+    def __init__(
+        self, density: Targets = None, moisture: Targets = None, depth: Targets = None
+    ):
+        self.density = self._validate_density(density)
+        self.moisture = self._validate_moisture(moisture)
+        self.depth = self._validate_depth(depth)
+
+    def _validate_density(self, density) -> Targets:
+        # TODO: write _validate_density
+        return density
+
+    def _validate_moisture(self, moisture) -> Targets:
+        # TODO: write _validate_moisture
+        return moisture
+
+    def _validate_depth(self, depth) -> Targets:
+        # TODO: write _validate_depth
+        return depth
+
+
 def import_duet(directory: str | Path, nx: int, ny: int, nz: int = 2) -> DuetRun:
     """
     Creates a DuetRun object from DUET output files
