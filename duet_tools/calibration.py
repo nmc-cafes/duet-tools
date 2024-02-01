@@ -40,7 +40,9 @@ class DuetRun:
     Class containing all arrays for a DUET run.
     """
 
-    def __init__(self, density: np.array, depth: np.array, moisture: np.array = None):
+    def __init__(
+        self, density: np.ndarray, depth: np.ndarray, moisture: np.ndarray = None
+    ):
         self.density = density
         self.moisture = moisture
         self.depth = depth
@@ -143,7 +145,7 @@ def assign_targets(*args, method: str, bbox: geojson = None) -> dict:
         return {"method": method, "mean": targ_mean, "sd": targ_sd}
     if method == "constant":
         targ = args[0]
-        return ({"method": method, "constant": targ},)
+        return {"method": method, "constant": targ}
     if method == "sb40":
         if bbox is None:
             raise ValueError("bbox must be provided when method = 'sb40'")
@@ -225,19 +227,24 @@ def calibrate(
         },
         "depth": {"grass": duet_run.depth[0, :, :], "litter": duet_run.depth[1, :, :]},
     }
+    fueltype_dict = {"grass": grass, "litter": litter, "all": all}
     method_dict = {
         "constant": {"func": _constant_calibration, "args": ["constant"]},
         "maxmin": {"func": _maxmin_calibration, "args": ["max", "min"]},
         "meansd": {"func": _meansd_calibration, "args": ["mean", "sd"]},
         # "sb40": {"func": _sb40_calibration, "args": ["bbox"]},
     }
-    for fueltype in [grass, litter, all]:
-        for parameter in fueltype.values():
-            for method, call in method_dict.items():
-                if parameter["method"] == method:
-                    func = call[func]
-                    args = [parameter[arg] for arg in call[args]]
-                    _do_calibration(duet_dict[parameter][fueltype], func, args)
+    new_duet_run = DuetRun()
+    for fueltype, ft_dict in fueltype_dict.items():
+        if ft_dict:
+            for parameter, param_dict in ft_dict.items():
+                if param_dict:
+                    for method, call in method_dict.items():
+                        if param_dict["method"] == method:
+                            func = call["func"]
+                            args = [param_dict[arg] for arg in call["args"]]
+                            array = duet_dict[parameter][fueltype]
+                            calibrated_array = _do_calibration(array, func, args)
 
 
 def get_unit_from_fastfuels(zroot):
@@ -262,7 +269,7 @@ def get_unit_from_shapefile(directory: str | Path):
     # TODO: write get_unit_from_shapefile
 
 
-def write_numpy_to_quicfire(array: np.array, directory: str | Path, filename: str):
+def write_numpy_to_quicfire(array: np.ndarray, directory: str | Path, filename: str):
     if isinstance(directory, str):
         directory = Path(directory)
     write_array_to_dat(array=array, dat_name=filename, output_dir=directory)
@@ -277,12 +284,12 @@ def _validate_target_args(method, arg_list):
 
 
 def _do_calibration(array, func, args):
-    func(array, *args)
+    return func(array, *args)
 
 
 def _maxmin_calibration(
-    x: np.array, max_val: float | int, min_val: float | int
-) -> np.array:
+    x: np.ndarray, max_val: float | int, min_val: float | int
+) -> np.ndarray:
     """
     Scales and shifts values in a numpy array based on an observed range. Does not assume
     data is normally distributed.
@@ -296,7 +303,9 @@ def _maxmin_calibration(
     return xnew
 
 
-def _meansd_calibration(x: np.array, mean: float | int, sd: float | int) -> np.array:
+def _meansd_calibration(
+    x: np.ndarray, mean: float | int, sd: float | int
+) -> np.ndarray:
     """
     Scales and shifts values in a numpy array based on an observed mean and standard deviation.
     Assumes data is normally distributed.
@@ -311,20 +320,20 @@ def _meansd_calibration(x: np.array, mean: float | int, sd: float | int) -> np.a
 
 
 # TODO: add option for fuel vs cell bulk density?
-def _constant_calibration(x: np.array, constant: float) -> np.array:
+def _constant_calibration(x: np.ndarray, constant: float) -> np.ndarray:
     arr = x.copy()
     arr[arr > 0] = constant
     return arr
 
 
-def _moisture_weights_from_density(density_array: np.array) -> np.array:
+def _moisture_weights_from_density(density_array: np.ndarray) -> np.ndarray:
     moisture_array = density_array.copy()
-    for i in moisture_array.shape[0]:
+    for i in range(moisture_array.shape[0]):
         moisture_array[i, :, :] = _maxmin_calibration(density_array[i, :, :], 1, 0)
     return moisture_array
 
 
-def _truncate_at_0(arr: np.array) -> np.array:
+def _truncate_at_0(arr: np.ndarray) -> np.ndarray:
     """
     Artificially truncates data to positive values by scaling all values below the median
     to the range (0, mean), effectively "compressing" those values.
@@ -352,14 +361,14 @@ def _truncate_at_0(arr: np.array) -> np.array:
 #     ymax: float
 #     output_dir: Union[str, Path]
 #     calibrated: bool = False
-#     calibrated_array: Optional[np.array] = None
+#     calibrated_array: Optional[np.ndarray] = None
 #     calibrated_fuel_type: list = []
 #     calibration_method: list = []
 #     saved_files: list = []
 
 #     @computed_field
 #     @property
-#     def original_duet_array(self) -> np.array:
+#     def original_duet_array(self) -> np.ndarray:
 #         return self._read_original_duet()
 
 #     @computed_field
@@ -653,8 +662,8 @@ def _truncate_at_0(arr: np.array) -> np.array:
 #                     )
 
 #     def _maxmin_calibration(
-#         self, x: np.array, max_val: float | int, min_val: float | int
-#     ) -> np.array:
+#         self, x: np.ndarray, max_val: float | int, min_val: float | int
+#     ) -> np.ndarray:
 #         """
 #         Scales and shifts values in a numpy array based on an observed range. Does not assume
 #         data is normally distributed.
@@ -668,8 +677,8 @@ def _truncate_at_0(arr: np.array) -> np.array:
 #         return xnew
 
 #     def _meansd_calibration(
-#         self, x: np.array, mean: float | int, sd: float | int
-#     ) -> np.array:
+#         self, x: np.ndarray, mean: float | int, sd: float | int
+#     ) -> np.ndarray:
 #         """
 #         Scales and shifts values in a numpy array based on an observed mean and standard deviation.
 #         Assumes data is normally distributed.
@@ -682,7 +691,7 @@ def _truncate_at_0(arr: np.array) -> np.array:
 #             xnew = self._truncate_at_0(xnew)
 #         return xnew
 
-#     def _truncate_at_0(self, arr: np.array) -> np.array:
+#     def _truncate_at_0(self, arr: np.ndarray) -> np.ndarray:
 #         """
 #         Artificially truncates data to positive values by scaling all values below the median
 #         to the range (0, mean), effectively "compressing" those values.
@@ -696,7 +705,7 @@ def _truncate_at_0(arr: np.array) -> np.array:
 #         arr2[np.where(arr == 0)] = 0
 #         return arr2
 
-#     def _query_landfire(self, delete_files: bool = True) -> np.array:
+#     def _query_landfire(self, delete_files: bool = True) -> np.ndarray:
 #         """
 #         Download a grid of SB40 fuel models from Landfire for the unit and convert to a numpy array
 
@@ -922,7 +931,7 @@ def _truncate_at_0(arr: np.array) -> np.array:
 
 #         return sb40_dict
 
-#     def _get_sb40_arrays(self, sb40_keys: np.array, sb40_dict: dict) -> tuple:
+#     def _get_sb40_arrays(self, sb40_keys: np.ndarray, sb40_dict: dict) -> tuple:
 #         """
 #         Use a dictionary of bulk density and fuel types that correspond to SB40
 #         fuel models to assign those values across the study area.
@@ -933,8 +942,8 @@ def _truncate_at_0(arr: np.array) -> np.array:
 #         - 0: Neither predominantly grass or tree litter. All other SB40 designations.
 
 #         Returns:
-#             - np.array of fuel types
-#             - np.array of bulk density values as calculated by fastfuels
+#             - np.ndarray of fuel types
+#             - np.ndarray of bulk density values as calculated by fastfuels
 #         """
 #         ftype_dict = {key: val[5] for key, val in sb40_dict.items()}
 #         ftype_arr = np.vectorize(ftype_dict.get)(sb40_keys)
@@ -944,7 +953,7 @@ def _truncate_at_0(arr: np.array) -> np.array:
 
 #         return ftype_arr, rhof_arr
 
-#     def _combine_fuel_types(self, calibrated_dict) -> np.array:
+#     def _combine_fuel_types(self, calibrated_dict) -> np.ndarray:
 #         calibrated_duet = np.zeros((2, self.ny, self.nx))
 #         if len(calibrated_dict.keys()) == 1:
 #             ftype = list(calibrated_dict.keys())[0]
