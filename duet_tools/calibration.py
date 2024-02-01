@@ -80,31 +80,10 @@ class Targets:
     Class containing target methods and values for fuel parameters
     """
 
-    def __init__(
-        self,
-        method: str = None,
-        max: float = None,
-        min: float = None,
-        mean: float = None,
-        sd: float = None,
-        constant: float = None,
-        bbox: geojson = None,
-    ):
-        self.method = self._validate_method(method)
-        self.max = max
-        self.min = min
-        self.mean = mean
-        self.sd = sd
-        self.constant = constant
-        self.bbox = bbox
-
-    def _validate_method(self, method) -> str:
-        methods_allowed = ["maxmin", "meansd", "constant", "sb40"]
-        if method not in methods_allowed:
-            raise ValueError(
-                f"Method {method} not supported. Must be one of {methods_allowed}"
-            )
-        return method
+    def __init__(self, method: str, args: list(str), targets: list):
+        self.method = method
+        self.args = args
+        self.targets = targets
 
 
 class FuelParameters:
@@ -112,24 +91,16 @@ class FuelParameters:
     Class containing and validating targets for each fuel parameter
     """
 
-    def __init__(
-        self, density: Targets = None, moisture: Targets = None, depth: Targets = None
-    ):
-        self.density = self._validate_density(density)
-        self.moisture = self._validate_moisture(moisture)
-        self.depth = self._validate_depth(depth)
+    def __init__(self, fuel_type: str, parameters: list(str), targets: list(Targets)):
+        self.fuel_type = fuel_type
+        self.parameters = parameters
+        self.targets = targets
 
-    def _validate_density(self, density) -> Targets:
-        # TODO: write _validate_density
-        return density
 
-    def _validate_moisture(self, moisture) -> Targets:
-        # TODO: write _validate_moisture
-        return moisture
-
-    def _validate_depth(self, depth) -> Targets:
-        # TODO: write _validate_depth
-        return depth
+class LandfireQuery:
+    """
+    Class containing the information from a LandFire query, to be passed to assign_targets()
+    """
 
 
 def import_duet(directory: str | Path, nx: int, ny: int, nz: int = 2) -> DuetRun:
@@ -162,7 +133,7 @@ def import_duet(directory: str | Path, nx: int, ny: int, nz: int = 2) -> DuetRun
     return DuetRun(density=density, depth=depth)
 
 
-def assign_targets(*args, method: str, bbox: geojson = None) -> dict:
+def assign_targets(method: str, **kwargs: float | LandfireQuery) -> Targets:
     """
     Assigns target values and calculation method for exactly one fuel type and parameter
 
@@ -170,51 +141,33 @@ def assign_targets(*args, method: str, bbox: geojson = None) -> dict:
     ----------
     method : str
         Calibration method for the target values provided. Must be one of:
-        "constant", "maxmin", "meansd", "sb40". Each method should be followed
-        by a corresponding number *args: "constant" takes a single value, "maxmin" takes
-        2 values (maximum, minimum), "meansd" takes 2 values (mean, standard deviation),
-        and "sb40" takes no arguments.
+        "constant", "maxmin", "meansd", "sb40".
+    **kwargs : str
+        Keyword arguments correspond to the calibration method.
+        #TODO: kwargs in docstring
 
     Returns
     -------
     Instance of class Targets
     """
+    _validate_method(method)
+    _validate_target_kwargs(method, kwargs)
 
-    methods_allowed = ["maxmin", "meansd", "constant", "sb40"]
-    if method not in methods_allowed:
-        raise ValueError(
-            f"Method {method} not supported. Must be one of {methods_allowed}"
-        )
-    _validate_target_args(method, args)
-    if method == "maxmin":
-        targ_max = args[0]
-        targ_min = args[1]
-        if targ_max <= targ_min:
-            raise ValueError("Target maximum must be greater than target minimum")
-        return {"method": method, "max": targ_max, "min": targ_min}
-    if method == "meansd":
-        targ_mean = args[0]
-        targ_sd = args[1]
-        if targ_mean < targ_sd:
-            warnings.warn(
-                "Target mean is smaller than target sd. Are they in the wrong order?"
-            )
-        return {"method": method, "mean": targ_mean, "sd": targ_sd}
-    if method == "constant":
-        targ = args[0]
-        return {"method": method, "constant": targ}
-    if method == "sb40":
-        if bbox is None:
-            raise ValueError("bbox must be provided when method = 'sb40'")
-        return {"method": method, "bbox": bbox}
+    args = list(kwargs.keys())
+    targets = list(kwargs.values())
+
+    return Targets(method=method, args=args, targets=targets)
 
 
-def fueltype_targets(density: dict = None, moisture: dict = None, depth: dict = None):
+def assign_fuel_parameters(fuel_type: str, **kwargs: Targets):
     """
     Assembles calibration targets for each fuel parameter for exactly one fuel type.
 
     Parameters
     ----------
+    fuel_type: str
+        Fuel type to assign fuel parameter targets to.
+    **kwargs #TODO
     density : Targets
         An object of class Targets defining the calibration method and target values
         for bulk density
@@ -229,20 +182,18 @@ def fueltype_targets(density: dict = None, moisture: dict = None, depth: dict = 
     ------
     Instance of calss FuelParameters
     """
-    in_dict = {"density": density, "moisture": moisture, "depth": depth}
-    out_dict = {}
-    for name, targ_dict in in_dict.items():
-        if targ_dict:
-            out_dict[name] = targ_dict
+    _validate_fuel_type(fuel_type)
+    parameters = kwargs.keys()
+    targets = kwargs.values()
 
-    return out_dict
+    return FuelParameters(fuel_type=fuel_type, parameters=parameters, targets=targets)
 
 
 def calibrate(
     duet_run: DuetRun,
-    grass: dict = None,
-    litter: dict = None,
-    all: dict = None,
+    grass: FuelParameters = None,
+    litter: FuelParameters = None,
+    all: FuelParameters = None,
 ) -> DuetRun:
     """
     Calibrates the arrays in a DuetRun object using the provided targets and methods for one
@@ -252,15 +203,6 @@ def calibrate(
     ----------
     duet_run : DuetRun
         The DUET run to calibrate
-    grass : FuelParameters
-        FuelParameters object containing calibration methods and target values for each fuel parameter,
-        to be applied to the grass layer of the DUET arrays.
-    litter :
-        FuelParameters object containing calibration methods and target values for each fuel parameter,
-        to be applied to the litter layer of the DUET arrays.
-    all :
-        FuelParameters object containing calibration methods and target values for each fuel parameter,
-        to be applied to the integrated fuel layers of the DUET arrays.
 
     Returns
     -------
@@ -332,12 +274,45 @@ def write_numpy_to_quicfire(array: np.ndarray, directory: str | Path, filename: 
     write_array_to_dat(array=array, dat_name=filename, output_dir=directory)
 
 
-def _validate_target_args(method, arg_list):
-    method_dict = {"sb40": 0, "constant": 1, "maxmin": 2, "meansd": 2}
-    if len(arg_list) != method_dict[method]:
+def _validate_method(method):
+    methods_allowed = ["maxmin", "meansd", "constant", "sb40"]
+    if method not in methods_allowed:
         raise ValueError(
-            f"Number of *args must be {method_dict[method]} when method = {method}"
+            f"Method {method} not supported. Must be one of {methods_allowed}"
         )
+
+
+def _validate_fuel_type(fuel_type):
+    fueltypes_allowed = ["maxmin", "meansd", "constant", "sb40"]
+    if fuel_type not in fueltypes_allowed:
+        raise ValueError(
+            f"Method {fuel_type} not supported. Must be one of {fueltypes_allowed}"
+        )
+
+
+def _validate_target_kwargs(method: str, kwargs: dict):
+    method_dict = {
+        "constant": ["target"],
+        "maxmin": ["max", "min"],
+        "meansd": ["mean", "sd"],
+        "sb40": ["landfire"],
+    }
+    args = method_dict.get(method)
+    if set(args) != set(list(kwargs.values())):
+        raise ValueError(f"Invalid **kwargs for method {method}. Must be {args}")
+    if method == "maxmin":
+        if kwargs["max"] <= kwargs["min"]:
+            raise ValueError("Target maximum must be greater than target minimum")
+    if method == "meansd":
+        if kwargs["mean"] < kwargs["sd"]:
+            warnings.warn(
+                "Target mean is smaller than target sd. Were they input correctly?"
+            )
+    if method == "sb40":
+        if not isinstance(kwargs["landfire"], LandfireQuery):
+            raise ValueError(
+                "Value of landfire **kwarg must be of class LandfireQuery. Please use query_landfire()"
+            )
 
 
 def _do_calibration(array, func, args):
