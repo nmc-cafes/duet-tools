@@ -462,6 +462,11 @@ def _meansd_calibration(x: np.ndarray, **kwargs: float) -> np.ndarray:
     mean_val = kwargs["mean"]
     sd_val = kwargs["sd"]
     x1 = x[x > 0]
+    if np.max(x1) == np.min(x1):
+        raise ValueError(
+            "meansd calibration should not be used when array has only one positive value. "
+            "Please use 'constant' calibration method"
+        )
     x2 = mean_val + (x1 - np.mean(x1)) * (sd_val / np.std(x1))
     xnew = x.copy()
     xnew[np.where(x > 0)] = x2

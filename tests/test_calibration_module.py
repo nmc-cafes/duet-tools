@@ -6,6 +6,7 @@ from __future__ import annotations
 import pytest
 import numpy as np
 from pathlib import Path
+import math
 
 from duet_tools.calibration import (
     DuetRun,
@@ -42,6 +43,9 @@ class TestDuetRun:
         # test that wrong dimensions raise error
         with pytest.raises(ValueError):
             duet_run = import_duet(directory=TMP_DIR, nx=252, ny=252, nz=3)
+
+    def test_add_moisture(self):
+        pass
 
 
 class TestAssignTargets:
@@ -82,7 +86,6 @@ class TestCalibrate:
     def test_calibrate_maxmin(self):
         # try 1 fueltype and 1 parameter
         duet_run = import_duet(TMP_DIR, 252, 252)
-        print(np.max(duet_run.depth[0, :, :]))
         grass_density = assign_targets(method="maxmin", max=1.0, min=0.2)
         grass_targets = assign_fuel_parameters(fuel_type="grass", density=grass_density)
         calibrated_duet = calibrate(duet_run, fuel_type_targets=grass_targets)
@@ -91,8 +94,8 @@ class TestCalibrate:
         assert np.allclose(calibrated_duet.depth, duet_run.depth)
         assert np.allclose(calibrated_duet.density, duet_run.density) == False
         assert np.allclose(calibrated_duet.density[1, :, :], duet_run.density[1, :, :])
-        assert np.max(calibrated_duet.density[0, :, :]) == 1.0
-        # assert np.min(calibrated_duet.density[0, :, :]) == 0.2 #why does this
+        assert np.max(calibrated_duet.density[0, :, :]) == np.float32(1.0)
+        assert np.min(calibrated_duet.density[0, :, :]) == np.float32(0.2)
         # try density and depth
         grass_depth = assign_targets(method="maxmin", max=1.0, min=0.2)
         grass_targets = assign_fuel_parameters(
@@ -108,3 +111,81 @@ class TestCalibrate:
         )
         with pytest.raises(ValueError):
             calibrated_duet = calibrate(duet_run, fuel_type_targets=grass_targets)
+
+        # try with two fueltypes
+        litter_density = assign_targets(method="maxmin", max=0.1, min=0.01)
+        litter_targets = assign_fuel_parameters(
+            fuel_type="litter", density=litter_density
+        )
+        grass_targets = assign_fuel_parameters(fuel_type="grass", density=grass_density)
+        calibrated_duet = calibrate(
+            duet_run, fuel_type_targets=[grass_targets, litter_targets]
+        )
+        assert isinstance(calibrated_duet, DuetRun)
+        assert isinstance(calibrated_duet.density, np.ndarray)
+        assert np.allclose(calibrated_duet.depth, duet_run.depth)
+        assert np.allclose(calibrated_duet.density, duet_run.density) == False
+        assert np.max(calibrated_duet.density[0, :, :]) == np.float32(1.0)
+        assert np.max(calibrated_duet.density[1, :, :]) == np.float32(0.1)
+
+    def test_calibrate_meansd(self):
+        # try 1 fueltype and 1 parameter
+        duet_run = import_duet(TMP_DIR, 252, 252)
+        grass_density = assign_targets(method="meansd", mean=0.6, sd=0.3)
+        grass_targets = assign_fuel_parameters(fuel_type="grass", density=grass_density)
+        calibrated_duet = calibrate(duet_run, fuel_type_targets=grass_targets)
+        assert isinstance(calibrated_duet, DuetRun)
+        assert isinstance(calibrated_duet.density, np.ndarray)
+        assert np.allclose(calibrated_duet.depth, duet_run.depth)
+        assert np.allclose(calibrated_duet.density, duet_run.density) == False
+        assert np.allclose(calibrated_duet.density[1, :, :], duet_run.density[1, :, :])
+        assert math.isclose(
+            np.mean(calibrated_duet.density[0, :, :]), np.float32(0.6), abs_tol=10**-6
+        )
+        assert math.isclose(
+            np.std(calibrated_duet.density[0, :, :]), np.float32(0.3), abs_tol=10**-6
+        )
+        # try density and depth
+        grass_depth = assign_targets(method="meansd", mean=0.5, sd=0.05)
+        grass_targets = assign_fuel_parameters(
+            fuel_type="grass", density=grass_density, depth=grass_depth
+        )
+        # shouldn't calibrate depth with meansd because there's only one value
+        with pytest.raises(ValueError):
+            calibrated_duet = calibrate(duet_run, fuel_type_targets=grass_targets)
+
+        # try with two fueltypes
+        litter_density = assign_targets(method="meansd", mean=0.05, sd=0.005)
+        litter_targets = assign_fuel_parameters(
+            fuel_type="litter", density=litter_density
+        )
+        grass_targets = assign_fuel_parameters(fuel_type="grass", density=grass_density)
+        calibrated_duet = calibrate(
+            duet_run, fuel_type_targets=[grass_targets, litter_targets]
+        )
+        assert isinstance(calibrated_duet, DuetRun)
+        assert isinstance(calibrated_duet.density, np.ndarray)
+        assert np.allclose(calibrated_duet.depth, duet_run.depth)
+        assert np.allclose(calibrated_duet.density, duet_run.density) == False
+
+    def test_constant_calibration(self):
+        duet_run = import_duet(TMP_DIR, 252, 252)
+        # TODO: change argument name from target to value
+        grass_depth = assign_targets(method="constant", target=0.5)
+        litter_depth = assign_targets(method="constant", target=0.05)
+        grass_targets = assign_fuel_parameters(fuel_type="grass", depth=grass_depth)
+        litter_targets = assign_fuel_parameters(fuel_type="litter", depth=litter_depth)
+        calibrated_duet = calibrate(
+            duet_run, fuel_type_targets=[grass_targets, litter_targets]
+        )
+        assert isinstance(calibrated_duet.depth, np.ndarray)
+        assert math.isclose(
+            np.mean(calibrated_duet.depth[0, :, :][calibrated_duet.depth[0, :, :] > 0]),
+            np.float32(0.5),
+            abs_tol=10**-6,
+        )
+        assert math.isclose(
+            np.mean(calibrated_duet.depth[1, :, :][calibrated_duet.depth[1, :, :] > 0]),
+            np.float32(0.05),
+            abs_tol=10**-6,
+        )
