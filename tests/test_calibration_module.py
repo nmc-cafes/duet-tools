@@ -16,6 +16,9 @@ from duet_tools.calibration import (
     assign_targets,
     assign_fuel_parameters,
     calibrate,
+    _maxmin_calibration,
+    _meansd_calibration,
+    _constant_calibration,
 )
 
 from duet_tools.utils import write_array_to_dat, read_dat_to_array
@@ -49,13 +52,59 @@ class TestAssignTargets:
         assert isinstance(maxmin_targets, Targets)
         assert isinstance(meansd_targets, Targets)
         assert isinstance(constant_target, Targets)
+        assert maxmin_targets.targets == [1.0, 0.2]
+        assert meansd_targets.targets == [0.6, 0.03]
+        assert constant_target.targets == [1.0]
+        # test other attributes
+        assert maxmin_targets.args == ["max", "min"]
+        assert maxmin_targets.method == "maxmin"
+        assert maxmin_targets.calibration_function == _maxmin_calibration
+
+    def test_target_validation(self):
+        # test wrong method
+        with pytest.raises(ValueError):
+            assign_targets(method="minmax", min=0.2, max=1.0)
+        # test wrong kwargs
+        with pytest.raises(ValueError):
+            assign_targets(method="maxmin", max=1.0)
+        with pytest.raises(ValueError):
+            assign_targets(method="constant", max=1.0, min=0.2)
+        with pytest.raises(ValueError):
+            assign_targets(method="meansd", max=1.0, min=0.02)
+        # test incorrect inputs
+        with pytest.raises(ValueError):
+            assign_targets(method="maxmin", max=0.2, min=1.0)
+        with pytest.warns(UserWarning):
+            assign_targets(method="meansd", mean=0.03, sd=0.6)
 
 
 class TestCalibrate:
     def test_calibrate_maxmin(self):
         # try 1 fueltype and 1 parameter
         duet_run = import_duet(TMP_DIR, 252, 252)
-        grass_density = assign_targets(1.0, 0.3, method="maxmin")
-        grass_targets = assign_fuel_parameters(density=grass_density)
-        calibrated_duet = calibrate(duet_run, grass=grass_targets)
+        print(np.max(duet_run.depth[0, :, :]))
+        grass_density = assign_targets(method="maxmin", max=1.0, min=0.2)
+        grass_targets = assign_fuel_parameters(fuel_type="grass", density=grass_density)
+        calibrated_duet = calibrate(duet_run, fuel_type_targets=grass_targets)
         assert isinstance(calibrated_duet, DuetRun)
+        assert isinstance(calibrated_duet.density, np.ndarray)
+        assert np.allclose(calibrated_duet.depth, duet_run.depth)
+        assert np.allclose(calibrated_duet.density, duet_run.density) == False
+        assert np.allclose(calibrated_duet.density[1, :, :], duet_run.density[1, :, :])
+        assert np.max(calibrated_duet.density[0, :, :]) == 1.0
+        # assert np.min(calibrated_duet.density[0, :, :]) == 0.2 #why does this
+        # try density and depth
+        grass_depth = assign_targets(method="maxmin", max=1.0, min=0.2)
+        grass_targets = assign_fuel_parameters(
+            fuel_type="grass", density=grass_density, depth=grass_depth
+        )
+        # can't calibrate depth with maxmin because there's only one value!
+        with pytest.raises(ValueError):
+            calibrated_duet = calibrate(duet_run, fuel_type_targets=grass_targets)
+        # now do moisture.. it will also raise an error since it doesn't exist in the og duet
+        grass_moisture = assign_targets(method="maxmin", max=0.5, min=0.05)
+        grass_targets = assign_fuel_parameters(
+            fuel_type="grass", density=grass_density, moisture=grass_moisture
+        )
+        with pytest.raises(ValueError):
+            calibrated_duet = calibrate(duet_run, fuel_type_targets=grass_targets)

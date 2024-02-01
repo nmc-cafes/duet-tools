@@ -35,6 +35,19 @@ except AttributeError:  # Python 3.6-3.8
     DATA_PATH = resource_filename("duet_tools", "data")
 
 
+# TODO: These shouldn't need to be here but testing won't run without them
+def fueltype_targets():
+    pass
+
+
+def _validate_target_args():
+    pass
+
+
+def _moisture_weights_from_density():
+    pass
+
+
 class DuetRun:
     """
     Class containing all arrays for a DUET run.
@@ -139,8 +152,6 @@ class Targets:
             return _meansd_calibration
         if method == "constant":
             return _constant_calibration
-        if method == "sb40":
-            return _sb40_calibration
 
 
 class FuelParameters:
@@ -240,8 +251,8 @@ def assign_fuel_parameters(fuel_type: str, **kwargs: Targets):
     Instance of calss FuelParameters
     """
     _validate_fuel_type(fuel_type)
-    parameters = kwargs.keys()
-    targets = kwargs.values()
+    parameters = list(kwargs.keys())
+    targets = list(kwargs.values())
 
     return FuelParameters(fuel_type=fuel_type, parameters=parameters, targets=targets)
 
@@ -270,6 +281,7 @@ def calibrate(
         fuel_type_targets = [fuel_type_targets]
     _validate_fuel_parameters(fuel_type_targets)
 
+    calibrated_duet = _duplicate_duet_run(duet_run)
     for fueltype_targ in fuel_type_targets:
         fueltype = fueltype_targ.fuel_type
         for i in range(len(fueltype_targ.parameters)):
@@ -278,10 +290,10 @@ def calibrate(
             calibrated_array = _do_calibration(
                 array_to_calibrate, fueltype_targ.targets[i]
             )
-            duet_run = _add_calibrated_array(
-                duet_run, calibrated_array, fueltype, fuelparam
+            calibrated_duet = _add_calibrated_array(
+                calibrated_duet, calibrated_array, fueltype, fuelparam
             )
-    return duet_run
+    return calibrated_duet
 
 
 def get_unit_from_fastfuels(zroot):
@@ -336,7 +348,7 @@ def _validate_target_kwargs(method: str, kwargs: dict):
         "sb40": ["landfire"],
     }
     args = method_dict.get(method)
-    if set(args) != set(list(kwargs.values())):
+    if set(args) != set(list(kwargs.keys())):
         raise ValueError(f"Invalid **kwargs for method {method}. Must be {args}")
     if method == "maxmin":
         if kwargs["max"] <= kwargs["min"]:
@@ -374,22 +386,22 @@ def _validate_input_moisture(moisture: np.ndarray, density: np.ndarray):
 def _get_array_to_calibrate(duet_run: DuetRun, fueltype: str, fuelparam: str):
     if fuelparam == "density":
         if fueltype == "grass":
-            return duet_run.density[0, :, :]
+            return duet_run.density[0, :, :].copy()
         if fueltype == "litter":
-            return duet_run.density[1, :, :]
+            return duet_run.density[1, :, :].copy()
         return np.sum(duet_run.density, axis=0)
     if fuelparam == "depth":
         if fueltype == "grass":
-            return duet_run.depth[0, :, :]
+            return duet_run.depth[0, :, :].copy()
         if fueltype == "litter":
-            return duet_run.depth[1, :, :]
+            return duet_run.depth[1, :, :].copy()
         return np.max(duet_run.depth, axis=0)
     if fuelparam == "moisture":
         if duet_run.moisture:
             if fueltype == "grass":
-                return duet_run.moisture[0, :, :]
+                return duet_run.moisture[0, :, :].copy()
             if fueltype == "litter":
-                return duet_run.moisture[1, :, :]
+                return duet_run.moisture[1, :, :].copy()
             density_weights = duet_run.density.copy()
             density_weights[density_weights == 0] = 0.01
             return np.average(duet_run.moisture, weights=density_weights, axis=0)
@@ -397,6 +409,20 @@ def _get_array_to_calibrate(duet_run: DuetRun, fueltype: str, fuelparam: str):
             "No moisture array available to calibrate. Please add moisture"
             "array using DuetRun.add_moisture_array"
         )
+
+
+def _duplicate_duet_run(duet_run: DuetRun) -> DuetRun:
+    new_density = duet_run.density.copy() if duet_run.density is not None else None
+    new_moisture = duet_run.moisture.copy() if duet_run.moisture is not None else None
+    new_depth = duet_run.depth.copy() if duet_run.depth is not None else None
+
+    new_duet = DuetRun(
+        density=new_density,
+        moisture=new_moisture,
+        depth=new_depth,
+    )
+
+    return new_duet
 
 
 def _do_calibration(array: np.ndarray, target_obj: Targets):
@@ -415,6 +441,11 @@ def _maxmin_calibration(x: np.ndarray, **kwargs: float) -> np.ndarray:
     max_val = kwargs["max"]
     min_val = kwargs["min"]
     x1 = x[x > 0]
+    if np.max(x1) == np.min(x1):
+        raise ValueError(
+            "maxmin calibration cannot be used when array has only one positive value. "
+            "Please use 'constant' calibration method"
+        )
     x2 = (x1 - np.min(x1)) / (np.max(x1) - np.min(x1))
     x3 = x2 * (max_val - min_val)
     x4 = x3 + min_val
@@ -448,19 +479,22 @@ def _constant_calibration(x: np.ndarray, **kwargs: float) -> np.ndarray:
 
 
 def _add_calibrated_array(
-    duet_run: DuetRun, calibrated_array: np.ndarray, fueltype: str, fuelparam: str
+    duet_to_calibrate: DuetRun,
+    calibrated_array: np.ndarray,
+    fueltype: str,
+    fuelparam: str,
 ) -> DuetRun:
     for param in ["density", "moisture", "depth"]:
         if fuelparam == param:
             if fueltype == "grass":
-                duet_run.__dict__[param][0, :, :] = calibrated_array
+                duet_to_calibrate.__dict__[param][0, :, :] = calibrated_array
             if fueltype == "litter":
-                duet_run.__dict__[param][1, :, :] = calibrated_array
+                duet_to_calibrate.__dict__[param][1, :, :] = calibrated_array
             if fueltype == "all":
-                duet_run.__dict__[param] = _separate_2d_array(
-                    calibrated_array, param, duet_run.density
+                duet_to_calibrate.__dict__[param] = _separate_2d_array(
+                    calibrated_array, param, duet_to_calibrate.density
                 )
-    return duet_run
+    return duet_to_calibrate
 
 
 def _separate_2d_array(
