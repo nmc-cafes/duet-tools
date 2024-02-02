@@ -9,19 +9,19 @@ def read_file(fname):
 
 def get_version():
     """Get the version number."""
-    url = "https://api.github.com/repos/silvxlabs/quicfire-tools/releases/latest"
+    url = "https://github.com/nmc-cafes/duet-tools"
     response = requests.get(url)
     response.raise_for_status()
     version = response.json()["tag_name"]
     return version[1:]  # Remove the leading "v" from the version number
 
 
-NAME = "quicfire-tools"
-DESCRIPTION = "Input and output management tools for the QUIC-Fire fire model"
+NAME = "duet-tools"
+DESCRIPTION = "Output management tools for LANL DUET program"
 LONG_DESCRIPTION = read_file("README.md")
 VERSION = get_version()
 LICENSE = "MIT"
-URL = "https://github.com/silvxlabs/quicfire-tools"
+URL = "https://github.com/nmc-cafes/duet-tools"
 PROJECT_URLS = {"Bug Tracker": f"{URL}/issues"}
 
 setup(
@@ -47,13 +47,10 @@ setup(
     ],
     package_dir={"": "."},
     packages=find_packages(exclude=["docs", "tests"]),
-    package_data={"quicfire_tools": ["data/templates/*/*", "data/documentation/*"]},
+    package_data={"duet_tools": ["data/*"]},
     include_package_data=True,
     install_requires=[
         "numpy<2",
-        "dask",
-        "pydantic>=2",
-        "zarr>=2",
     ],
     python_requires=">=3.8",
 )
