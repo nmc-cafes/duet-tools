@@ -11,14 +11,14 @@ from scipy.io import FortranFile
 
 def read_dat_to_array(
     directory: str | Path, filename: str, nx: int, ny: int, nz: int, order: str = "F"
-):
+) -> np.ndarray:
     if isinstance(directory, str):
         directory = Path(directory)
     with open(Path(directory, filename), "rb") as fin:
         array = (
             FortranFile(fin)
             .read_reals(dtype="float32")
-            .reshape((nz, ny, nx), order="F")
+            .reshape((nz, ny, nx), order=order)
         )
     return array
 

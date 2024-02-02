@@ -7,6 +7,7 @@ import pytest
 import numpy as np
 from pathlib import Path
 import math
+import matplotlib.pyplot as plt
 
 from duet_tools.calibration import (
     DuetRun,
@@ -45,7 +46,77 @@ class TestDuetRun:
             duet_run = import_duet(directory=TMP_DIR, nx=252, ny=252, nz=3)
 
     def test_add_moisture(self):
-        pass
+        duet_run = import_duet(directory=TMP_DIR, nx=252, ny=252)
+        grass_moist = np.full((252, 252), 0.4)
+        litter_moist = np.full((252, 252), 0.1)
+        array_to_add = np.array([grass_moist, litter_moist])
+        duet_run.add_moisture_array(array_to_add)
+        assert isinstance(duet_run.moisture, np.ndarray)
+        assert duet_run.moisture.shape == (2, 252, 252)
+        # test zero fuel moistue where fuels are present raises error
+        with pytest.raises(ValueError):
+            duet_run = import_duet(directory=TMP_DIR, nx=252, ny=252)
+            duet_run.add_moisture_array(np.array([np.zeros((252, 252)), litter_moist]))
+        # test wrong dimensions
+        with pytest.raises(ValueError):
+            duet_run = import_duet(directory=TMP_DIR, nx=252, ny=252)
+            duet_run.add_moisture_array(grass_moist)
+
+    def test_to_numpy(self):
+        duet_run = import_duet(directory=TMP_DIR, nx=252, ny=252)
+        grass_moist = np.full((252, 252), 0.4)
+        litter_moist = np.full((252, 252), 0.1)
+        array_to_add = np.array([grass_moist, litter_moist])
+        duet_run.add_moisture_array(array_to_add)
+        # test each fuel parameter and type
+        grass_density = duet_run.to_numpy("grass", "density")
+        litter_density = duet_run.to_numpy("litter", "density")
+        grass_moisture = duet_run.to_numpy("grass", "moisture")
+        litter_moisture = duet_run.to_numpy("litter", "moisture")
+        grass_depth = duet_run.to_numpy("grass", "depth")
+        litter_depth = duet_run.to_numpy("litter", "depth")
+        assert np.array_equal(grass_density, duet_run.density[0, :, :])
+        assert np.array_equal(litter_density, duet_run.density[1, :, :])
+        assert np.array_equal(grass_moisture, duet_run.moisture[0, :, :])
+        assert np.array_equal(litter_moisture, duet_run.moisture[1, :, :])
+        assert np.array_equal(grass_depth, duet_run.depth[0, :, :])
+        assert np.array_equal(litter_depth, duet_run.depth[1, :, :])
+        # test integrated and separated
+        separated_density = duet_run.to_numpy("separated", "density")
+        assert np.array_equal(separated_density, duet_run.density)
+        integrated_density = duet_run.to_numpy("integrated", "density")
+        integrated_depth = duet_run.to_numpy("integrated", "depth")
+        integrated_moisture = duet_run.to_numpy("integrated", "moisture")
+        assert np.array_equal(integrated_density, np.sum(duet_run.density, axis=0))
+        assert np.array_equal(integrated_depth, np.max(duet_run.depth, axis=0))
+        weights = _maxmin_calibration(duet_run.density.copy(), max=1.0, min=0)
+        weights[weights == 0] = 0.01
+        weighted_average_moisture = np.average(
+            duet_run.moisture, axis=0, weights=weights
+        )
+        assert np.array_equal(integrated_moisture, weighted_average_moisture)
+
+    def test_to_quicfire(self):
+        duet_run = import_duet(directory=TMP_DIR, nx=252, ny=252)
+        duet_run.to_quicfire(TMP_DIR)
+        treesrhof = read_dat_to_array(TMP_DIR, "treesrhof.dat", 252, 252, 1, order="C")
+        treesrhof = treesrhof[0, :, :]
+        treesfueldepth = read_dat_to_array(
+            TMP_DIR, "treesfueldepth.dat", 252, 252, 1, order="C"
+        )
+        treesfueldepth = treesfueldepth[0, :, :]
+        assert np.array_equal(treesrhof, duet_run._integrate("density"))
+        assert np.array_equal(treesfueldepth, duet_run._integrate("depth"))
+        grass_moist = np.full((252, 252), 0.4)
+        litter_moist = np.full((252, 252), 0.1)
+        array_to_add = np.array([grass_moist, litter_moist])
+        duet_run.add_moisture_array(array_to_add)
+        duet_run.to_quicfire(TMP_DIR)
+        treesmoist = read_dat_to_array(
+            TMP_DIR, "treesmoist.dat", 252, 252, 1, order="C"
+        )
+        treesmoist = treesmoist[0, :, :]
+        assert np.allclose(treesmoist, duet_run._integrate("moisture"))
 
 
 class TestAssignTargets:
@@ -253,3 +324,12 @@ class TestCalibrate:
         assert calibrated_duet.density.shape[0] == 2
         assert np.max(np.sum(calibrated_duet.density, axis=0)) == np.float32(2.0)
         assert np.min(np.sum(calibrated_duet.density, axis=0)) == np.float32(0.5)
+
+
+def plot_array(x, title):
+    plt.figure(2)
+    plt.set_cmap("viridis")
+    plt.imshow(x, origin="lower")
+    plt.colorbar()
+    plt.title(title, fontsize=18)
+    plt.show()

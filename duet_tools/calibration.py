@@ -86,17 +86,15 @@ class DuetRun:
             directory = Path(directory)
         if self.density is not None:
             treesrhof = self._integrate("density")
-            write_array_to_dat(treesrhof, "treesrhof.dat", directory, reshape=False)
+            write_array_to_dat(treesrhof, "treesrhof.dat", directory)
             written_files.append("treesrhof.dat")
         if self.moisture is not None:
             treesmoist = self._integrate("moisture")
-            write_array_to_dat(treesmoist, "treesmoist.dat", directory, reshape=False)
+            write_array_to_dat(treesmoist, "treesmoist.dat", directory)
             written_files.append("treesmoist.dat")
         if self.depth is not None:
             treesfueldepth = self._integrate("depth")
-            write_array_to_dat(
-                treesfueldepth, "treesfueldepth.dat", directory, reshape=False
-            )
+            write_array_to_dat(treesfueldepth, "treesfueldepth.dat", directory)
             written_files.append("treesfueldepth.dat")
         if len(written_files) == 0:
             print("No files were written")
@@ -138,7 +136,7 @@ class DuetRun:
         if fuel_type == "litter":
             return self.__dict__[fuel_parameter][1, :, :].copy()
 
-    def _integrate(self, fuel_parameter: str):
+    def _integrate(self, fuel_parameter: str) -> np.ndarray:
         if fuel_parameter == "density":
             return np.sum(self.density, axis=0)
         if fuel_parameter == "moisture":
@@ -662,7 +660,7 @@ def _density_weighted_average(moisture: np.ndarray, density: np.ndarray) -> np.n
     Vertically integrate moisture by a weighted mean, where the weights comd from cell bulk density
     """
     weights = _maxmin_calibration(density, max=1.0, min=0)
-    weights[weights == 0] = 0.1
+    weights[weights == 0] = 0.01
     integrated = np.average(moisture, axis=0, weights=weights)
     return integrated
 
