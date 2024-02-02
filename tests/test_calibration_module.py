@@ -123,7 +123,7 @@ class TestAssignTargets:
     def test_assign_targets(self):
         maxmin_targets = assign_targets(method="maxmin", max=1.0, min=0.2)
         meansd_targets = assign_targets(method="meansd", mean=0.6, sd=0.03)
-        constant_target = assign_targets(method="constant", target=1.0)
+        constant_target = assign_targets(method="constant", value=1.0)
         assert isinstance(maxmin_targets, Targets)
         assert isinstance(meansd_targets, Targets)
         assert isinstance(constant_target, Targets)
@@ -157,7 +157,7 @@ class TestSetFuelParameter:
     def test_set_fuel_parameter(self):
         maxmin_targets = assign_targets(method="maxmin", max=1.0, min=0.2)
         meansd_targets = assign_targets(method="meansd", mean=0.6, sd=0.03)
-        constant_target = assign_targets(method="constant", target=1.0)
+        constant_target = assign_targets(method="constant", value=1.0)
         # test separated functions
         density_targets = set_density(grass=maxmin_targets, litter=meansd_targets)
         moisture_targets = set_moisture(grass=constant_target)
@@ -276,9 +276,8 @@ class TestCalibrate:
 
     def test_constant_calibration(self):
         duet_run = import_duet(TMP_DIR, 252, 252)
-        # TODO: change argument name from target to value
-        grass_height = assign_targets(method="constant", target=0.5)
-        litter_height = assign_targets(method="constant", target=0.05)
+        grass_height = assign_targets(method="constant", value=0.5)
+        litter_height = assign_targets(method="constant", value=0.05)
         height_targets = set_fuel_parameter(
             parameter="height", grass=grass_height, litter=litter_height
         )
@@ -302,8 +301,8 @@ class TestCalibrate:
     def test_fueltype_all(self):
         duet_run = import_duet(TMP_DIR, 252, 252)
         density = assign_targets(method="maxmin", max=2.0, min=0.5)
-        grass_height = assign_targets(method="constant", target=0.75)
-        litter_height = assign_targets(method="constant", target=0.15)
+        grass_height = assign_targets(method="constant", value=0.75)
+        litter_height = assign_targets(method="constant", value=0.15)
         density_targets = set_fuel_parameter(parameter="density", all=density)
         height_targets = set_fuel_parameter(
             parameter="height", grass=grass_height, litter=litter_height

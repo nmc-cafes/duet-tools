@@ -183,7 +183,7 @@ class Targets:
 
     def _validate_target_args(self, method: str, args: list(str), targets: list(float)):
         method_dict = {
-            "constant": ["target"],
+            "constant": ["value"],
             "maxmin": ["max", "min"],
             "meansd": ["mean", "sd"],
             "sb40": ["landfire"],
@@ -581,9 +581,9 @@ def _meansd_calibration(x: np.ndarray, **kwargs: float) -> np.ndarray:
 
 # TODO: add option for fuel vs cell bulk density?
 def _constant_calibration(x: np.ndarray, **kwargs: float) -> np.ndarray:
-    constant = kwargs["target"]
+    value = kwargs["value"]
     arr = x.copy()
-    arr[arr > 0] = constant
+    arr[arr > 0] = value
     return arr
 
 

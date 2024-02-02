@@ -1,10 +1,10 @@
 TODO:
 
-Change depth to height
-For constant calibration change name of arg from target to value
-Decide if there should be one function or separate functions for setting fuel parameter targets
+[x] Change depth to height
+[x] For constant calibration change name of arg from target to value
+[] Decide if there should be one function or separate functions for setting fuel parameter targets
 
-Incorporate landfire queries:
+[] Incorporate landfire queries:
 # import geojson
 # import landfire
 # from landfire.geospatial import get_bbox_from_polygon
