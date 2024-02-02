@@ -35,19 +35,6 @@ except AttributeError:  # Python 3.6-3.8
     DATA_PATH = resource_filename("duet_tools", "data")
 
 
-# TODO: These shouldn't need to be here but testing won't run without them
-def fueltype_targets():
-    pass
-
-
-def _validate_target_args():
-    pass
-
-
-def _moisture_weights_from_density():
-    pass
-
-
 class DuetRun:
     """
     Class containing all arrays for a DUET run.
@@ -94,9 +81,29 @@ class DuetRun:
         None :
             Writes QUIC-Fire .dat files to the provided directory.
         """
+        written_files = []
         if isinstance(directory, str):
             directory = Path(directory)
-        # TODO: write to_quicfire
+        if self.density is not None:
+            treesrhof = self._integrate("density")
+            write_array_to_dat(treesrhof, "treesrhof.dat", directory, reshape=False)
+            written_files.append("treesrhof.dat")
+        if self.moisture is not None:
+            treesmoist = self._integrate("moisture")
+            write_array_to_dat(treesmoist, "treesmoist.dat", directory, reshape=False)
+            written_files.append("treesmoist.dat")
+        if self.depth is not None:
+            treesfueldepth = self._integrate("depth")
+            write_array_to_dat(
+                treesfueldepth, "treesfueldepth.dat", directory, reshape=False
+            )
+            written_files.append("treesfueldepth.dat")
+        if len(written_files) == 0:
+            print("No files were written")
+        else:
+            print(
+                f"QUIC-Fire files {written_files} were written to directory {directory}"
+            )
 
     def to_numpy(self, fuel_type: str, fuel_parameter: str) -> np.ndarray:
         """
@@ -119,19 +126,25 @@ class DuetRun:
         Returns
         -------
         np.ndarray :
-            3D array of the provided fuel type and parameter.
+            Numpy array of the provided fuel type and parameter.
         """
-        fueltypes_allowed = ["grass", "litter", "separated", "integrated"]
-        parameters_allowed = ["density", "moisture", "depth"]
-        if fuel_type not in fueltypes_allowed:
-            raise ValueError(
-                f"Fuel type {fuel_type} not supported. Must be one of {fueltypes_allowed}"
-            )
-        if fuel_parameter not in parameters_allowed:
-            raise ValueError(
-                f"Fuel parameter {fuel_parameter} not supported. Must be one of {parameters_allowed}"
-            )
-        # TODO: write to_numpy
+        self._validate_fuel_inputs(fuel_type, fuel_parameter)
+        if fuel_type == "separated":
+            return self.__dict__[fuel_parameter].copy()
+        if fuel_type == "integrated":
+            return self._integrate(fuel_parameter)
+        if fuel_type == "grass":
+            return self.__dict__[fuel_parameter][0, :, :].copy()
+        if fuel_type == "litter":
+            return self.__dict__[fuel_parameter][1, :, :].copy()
+
+    def _integrate(self, fuel_parameter: str):
+        if fuel_parameter == "density":
+            return np.sum(self.density, axis=0)
+        if fuel_parameter == "moisture":
+            return _density_weighted_average(self.moisture, self.density)
+        if fuel_parameter == "depth":
+            return np.max(self.depth, axis=0)
 
     def _validate_input_moisture(self, moisture: np.ndarray):
         if moisture.shape != self.density.shape:
@@ -141,6 +154,18 @@ class DuetRun:
         if self.density[np.where(moisture == 0)].any() != 0:
             raise ValueError(
                 "Value of moisture array cannot be zero where fuel is present"
+            )
+
+    def _validate_fuel_inputs(self, fuel_type: str, fuel_parameter: str):
+        fueltypes_allowed = ["grass", "litter", "separated", "integrated"]
+        if fuel_type not in fueltypes_allowed:
+            raise ValueError(
+                f"Fuel type {fuel_type} not supported. Must be one of {fueltypes_allowed}"
+            )
+        parameters_allowed = ["density", "moisture", "depth"]
+        if fuel_parameter not in parameters_allowed:
+            raise ValueError(
+                f"Fuel parameter {fuel_parameter} not supported. Must be one of {parameters_allowed}"
             )
 
 
@@ -632,147 +657,15 @@ def _truncate_at_0(arr: np.ndarray) -> np.ndarray:
     return arr2
 
 
-# class DuetCalibrator(BaseModel):
-#     # TODO: Instead of saving just the most recent array to self.calibrated_array, append to a list or a dict of calibrated arrays, so that you can access a bunch without reading in dat files
-#     nx: PositiveInt
-#     ny: PositiveInt
-#     nz: PositiveInt
-#     dx: PositiveInt
-#     dy: PositiveInt
-#     xmin: float
-#     ymin: float
-#     xmax: float
-#     ymax: float
-#     output_dir: Union[str, Path]
-#     calibrated: bool = False
-#     calibrated_array: Optional[np.ndarray] = None
-#     calibrated_fuel_type: list = []
-#     calibration_method: list = []
-#     saved_files: list = []
+def _density_weighted_average(moisture: np.ndarray, density: np.ndarray) -> np.ndarray:
+    """
+    Vertically integrate moisture by a weighted mean, where the weights comd from cell bulk density
+    """
+    weights = _maxmin_calibration(density, max=1.0, min=0)
+    weights[weights == 0] = 0.1
+    integrated = np.average(moisture, axis=0, weights=weights)
+    return integrated
 
-#     @computed_field
-#     @property
-#     def original_duet_array(self) -> np.ndarray:
-#         return self._read_original_duet()
-
-#     @computed_field
-#     @property
-#     def duet_dict(self) -> dict:
-#         return self._get_input_array()
-
-#     def calibrate_max_min(
-#         self, fuel_type: str | list, max_val: float | list, min_val: float | list
-#     ) -> None:
-#         """
-#         Calibrate the values of the surface bulk density output from DUET by setting the
-#         range (maximum and minimum).
-
-#         Parameters
-#         ----------
-
-#         fuel_type : str | list
-#             Fuel type(s) to calibrate. May be one of "total", "grass", or "litter" given
-#             as a string, or both "grass" and "litter" given as a list. When "total", both
-#             fuel types are calibrated based on one set of inputs. When "litter" or "grass",
-#             the given fuel type is calibrated, the other is left unchanged and added to the
-#             calibrated fuel type to produce the final array. When ["grass","litter"] or
-#             ["litter","grass"] both fuel types are calibrated based on their respective inputs.
-
-#         max_val : float | list
-#             Target maximim value for calibration. If multiple values are given for multiple fuel
-#             types, the position of each value in the list must match the position of their
-#             corresponding fuel type.
-
-#         min_val : float | list
-#             Target minimum value for calibration. If multiple values are given for multiple
-#             fuel types, the position of each value in the list must match the position of their
-#             corresponding fuel type.
-
-#         Returns
-#         -------
-#         None
-#             Calibrated array of DUET surface bulk density is saved to the output directory.
-#             Filename indicates the fuel type and the max/min calibration method, and is
-#             incremented if previous calibrations of the same fuel type and method have been
-#             conducted.
-
-#         """
-#         self._validate_inputs(fuel_type, max_val, min_val)
-#         if isinstance(fuel_type, str):
-#             fuel_type = [fuel_type]
-#         if isinstance(max_val, int) or isinstance(max_val, float):
-#             max_val = [max_val]
-#         if isinstance(min_val, int) or isinstance(min_val, float):
-#             min_val = [min_val]
-#         calibrated = {}
-#         for f in range(len(fuel_type)):
-#             arr = self.duet_dict[fuel_type[f]]
-#             calibrated[fuel_type[f]] = self._maxmin_calibration(
-#                 arr, max_val[f], min_val[f]
-#             )
-#         self.calibrated_array = self._combine_fuel_types(calibrated_dict=calibrated)
-#         self.calibrated = True
-#         self.calibrated_fuel_type.append(fuel_type)
-#         self.calibrated_fuel_type = self._flatten(self.calibrated_fuel_type)
-#         self.calibration_method.append("maxmin")
-#         self.duet_dict = self._get_input_array()
-
-#     def calibrate_mean_sd(
-#         self, fuel_type: str | list, mean_val: float | list, sd_val: float | list
-#     ) -> None:
-#         """
-#         Calibrate the values of the surface bulk density output from DUET by setting the
-#         center and spread (mean and standard deviation).
-
-#         Parameters
-#         ----------
-
-#         fuel_type : str | list
-#             Fuel type(s) to calibrate. May be one of "total", "grass", or "litter" given
-#             as a string, or both "grass" and "litter" given as a list. When "total", both
-#             fuel types are calibrated based on one set of inputs. When "litter" or "grass",
-#             the given fuel type is calibrated, the other is left unchanged and added to the
-#             calibrated fuel type to produce the final array. When ["grass","litter"] or
-#             ["litter","grass"] both fuel types are calibrated based on their respective inputs.
-
-#         mean_val : float | list
-#             Target mean value for calibration. If multiple values are given for multiple fuel
-#             types, the position of each value in the list must match the position of their
-#             corresponding fuel type.
-
-#         sd_val : float | list
-#             Target standard deviation for calibration. If multiple values are given for multiple
-#             fuel types, the position of each value in the list must match the position of their
-#             corresponding fuel type.
-
-#         Returns
-#         -------
-#         None
-#             Calibrated array of DUET surface bulk density is saved to the output directory.
-#             Filename indicates the fuel type and the max/min calibration method, and is
-#             incremented if previous calibrations of the same fuel type and method have been
-#             conducted.
-
-#         """
-#         self._validate_inputs(fuel_type, mean_val, sd_val)
-#         if isinstance(fuel_type, str):
-#             fuel_type = [fuel_type]
-#         if isinstance(mean_val, int) or isinstance(mean_val, float):
-#             mean_val = [mean_val]
-#         if isinstance(sd_val, int) or isinstance(sd_val, float):
-#             sd_val = [sd_val]
-#         calibrated = {}
-#         for f in range(len(fuel_type)):
-#             arr = self.duet_dict[fuel_type[f]]
-#             calibrated[fuel_type[f]] = self._meansd_calibration(
-#                 arr, mean_val[f], sd_val[f]
-#             )
-#         self.calibrated_array = self._combine_fuel_types(calibrated_dict=calibrated)
-#         self.calibrated = True
-#         self.calibrated_fuel_type.append(fuel_type)
-#         self.calibrated_fuel_type = self._flatten(self.calibrated_fuel_type)
-#         self.calibration_method.append("meansd")
-#         self.duet_dict = self._get_input_array()
 
 #     def calibrate_with_sb40(self, fuel_type: str | list) -> None:
 #         self._validate_inputs(fuel_type)
@@ -824,170 +717,6 @@ def _truncate_at_0(arr: np.ndarray) -> np.ndarray:
 #         self.calibration_method.append("sb40")
 #         self.duet_dict = self._get_input_array()
 
-#     def revert_to_original_duet(self, delete_files: bool = False) -> None:
-#         """
-#         Ensure that the next calibration will be conducted on the original DUET output and
-#         optionally delete all files saved from previous calibrations of the DuetCalibrator
-#         instance.
-
-#         Parameters
-#         ----------
-
-#         delete_files : bool
-#             Whether to delete the previously saved .dat files. Default is False,
-#             meaning files will not be deleted and any subsequent calibrations of the
-#             same method and fuel type will be saved with incremented filenames.
-
-#         """
-#         if delete_files:
-#             [
-#                 Path(self.output_dir, self.saved_files[file]).unlink()
-#                 for file in range(len(self.saved_files))
-#                 if Path(self.output_dir, self.saved_files[file]).exists()
-#             ]
-#             self.saved_files = []
-#         self.calibrated = False
-#         self.calibrated_array = None
-#         self.calibrated_fuel_type = []
-#         self.calibration_method = []
-#         self.original_duet_array = self._read_original_duet()
-#         self.duet_dict = self._get_input_array()
-
-#     def to_file(self) -> None:
-#         """
-#         Write the most recently calibrated surface fuel array to a .dat file.
-#         File will be saved to the output directory of the DuetCalibrator instance.
-#         """
-#         if self.calibrated:
-#             arr_name = self._name_calibrated_file()
-#             _write_np_array_to_dat(self.calibrated_array, arr_name, self.output_dir)
-#             self.saved_files.append(arr_name)
-#         else:
-#             raise Exception("Must calibrate array before writing to file.")
-
-#     def replace_quicfire_surface_fuels(self):
-#         """
-#         Replace surface fuel bulk density in quicfire output
-#         (from export_zarr_to_quicfire) with DUET output.
-
-#         Parameters
-#         ----------
-#         quicfire_dir: Path | str
-#             Directory where QUIO-Fire .dat files are located,
-#             and to where updated .dat files are written to.
-
-#         Returns
-#         -------
-#         None
-#             Modified bulk density array (treesrhof.dat) is written to the QUIC-Fire directory
-#         """
-#         with open(Path(self.output_dir, "treesrhof.dat"), "rb") as fin:
-#             qf_arr = (
-#                 FortranFile(fin)
-#                 .read_reals(dtype="float32")
-#                 .reshape((self.nz, self.ny, self.nx), order="C")
-#             )
-#         if self.calibrated:
-#             tag = "calibrated"
-#             duet_arr = np.add(
-#                 self.calibrated_array[0, :, :], self.calibrated_array[1, :, :]
-#             )
-#         else:
-#             tag = "unmodified"
-#             duet_arr = np.add(
-#                 self.original_duet_array[0, :, :], self.original_duet_array[1, :, :]
-#             )
-#         qf_arr[0, :, :] = duet_arr
-#         _write_np_array_to_dat(
-#             qf_arr, "treesrhof.dat", self.output_dir, np.float32, reshape=False
-#         )
-#         print(
-#             "Replaced FastFuels surface fuel layer with {} DUET surface fuels".format(
-#                 tag
-#             )
-#         )
-
-#     def _validate_inputs(self, fuel_type, val1=None, val2=None):
-#         # Validate fuel types
-#         valid_ftypes = [
-#             "litter",
-#             "grass",
-#             "total",
-#             ["litter", "grass"],
-#             ["grass", "litter"],
-#         ]
-#         if fuel_type not in valid_ftypes:
-#             raise ValueError(
-#                 "Invalid fuel type. Must be one of {}.".format(valid_ftypes)
-#             )
-#         if fuel_type == "total" and self.calibrated == True:
-#             raise ValueError(
-#                 "Invalide fuel type: 'total' fuel calibration cannot be applied to a previously calibrated array. Choose a different fuel type or use revert_to_original_duet() before calibrating total fuels."
-#             )
-#         if fuel_type in self.calibrated_fuel_type:
-#             warnings.warn(
-#                 "Fuel type '{}' already calibrated. Replacing previous calibrated values.".format(
-#                     fuel_type
-#                 )
-#             )
-
-#         # Validate fuel summary arguments
-#         if val1 is not None:
-#             if isinstance(fuel_type, list):
-#                 if not isinstance(val1, list) or not isinstance(val2, list):
-#                     raise TypeError(
-#                         "Fuel input values must be provided as a list when fuel_type is a list."
-#                     )
-#                 if len(fuel_type) != len(val1) | len(val2):
-#                     raise ValueError(
-#                         "Number of fuel value inputs must match number of fuel types ({} fuel inputs for fuel_type = {}).".format(
-#                             len(fuel_type), fuel_type
-#                         )
-#                     )
-
-#     def _maxmin_calibration(
-#         self, x: np.ndarray, max_val: float | int, min_val: float | int
-#     ) -> np.ndarray:
-#         """
-#         Scales and shifts values in a numpy array based on an observed range. Does not assume
-#         data is normally distributed.
-#         """
-#         x1 = x[x > 0]
-#         x2 = (x1 - np.min(x1)) / (np.max(x1) - np.min(x1))
-#         x3 = x2 * (max_val - min_val)
-#         x4 = x3 + min_val
-#         xnew = x.copy()
-#         xnew[np.where(x > 0)] = x4
-#         return xnew
-
-#     def _meansd_calibration(
-#         self, x: np.ndarray, mean: float | int, sd: float | int
-#     ) -> np.ndarray:
-#         """
-#         Scales and shifts values in a numpy array based on an observed mean and standard deviation.
-#         Assumes data is normally distributed.
-#         """
-#         x1 = x[x > 0]
-#         x2 = mean + (x1 - np.mean(x1)) * (sd / np.std(x1))
-#         xnew = x.copy()
-#         xnew[np.where(x > 0)] = x2
-#         if np.min(xnew) < 0:
-#             xnew = self._truncate_at_0(xnew)
-#         return xnew
-
-#     def _truncate_at_0(self, arr: np.ndarray) -> np.ndarray:
-#         """
-#         Artificially truncates data to positive values by scaling all values below the median
-#         to the range (0, mean), effectively "compressing" those values.
-#         """
-#         arr2 = arr.copy()
-#         bottom_half = arr2[arr2 < np.median(arr2)]
-#         squeezed = (bottom_half - np.min(bottom_half)) / (
-#             np.max(bottom_half) - np.min(bottom_half)
-#         ) * (np.median(arr2) - 0) + 0
-#         arr2[np.where(arr2 < np.median(arr2))] = squeezed
-#         arr2[np.where(arr == 0)] = 0
-#         return arr2
 
 #     def _query_landfire(self, delete_files: bool = True) -> np.ndarray:
 #         """
@@ -1265,50 +994,6 @@ def _truncate_at_0(arr: np.ndarray) -> np.ndarray:
 #             calibrated_duet[1, :, :] = calibrated_dict["litter"]
 #         return calibrated_duet
 
-#     def _get_input_array(self):
-#         duet_dict = {}
-#         if self.calibrated:
-#             duet_dict["grass"] = self.calibrated_array[0, :, :]
-#             duet_dict["litter"] = self.calibrated_array[1, :, :]
-#             duet_dict["total"] = np.add(
-#                 self.calibrated_array[0, :, :], self.calibrated_array[1, :, :]
-#             )
-#         else:
-#             duet_dict["grass"] = self.original_duet_array[0, :, :]
-#             duet_dict["litter"] = self.original_duet_array[1, :, :]
-#             duet_dict["total"] = np.add(
-#                 self.original_duet_array[0, :, :], self.original_duet_array[1, :, :]
-#             )
-#         return duet_dict
-
-#     def _name_calibrated_file(self) -> str:
-#         delim = "_"
-#         ftype_str = (
-#             self.calibrated_fuel_type[0]
-#             if len(self.calibrated_fuel_type) == 1
-#             else delim.join([str(ele) for ele in self.calibrated_fuel_type])
-#         )
-#         method_str = (
-#             self.calibration_method[0]
-#             if len(self.calibration_method) == 1
-#             else delim.join([str(ele) for ele in self.calibration_method])
-#         )
-#         arr_name = delim.join(
-#             ["surface_rhof_calibrated", ftype_str, "{}.dat".format(method_str)]
-#         )
-#         if Path(self.output_dir, arr_name).exists():
-#             i = 2
-#             while Path(
-#                 self.output_dir,
-#                 delim.join(
-#                     ["surface_rhof_calibrated", ftype_str, method_str, "%s.dat" % i]
-#                 ),
-#             ).exists():
-#                 i += 1
-#             arr_name = delim.join(
-#                 ["surface_rhof_calibrated", ftype_str, method_str, "%s.dat" % i]
-#             )
-#         return arr_name
 
 #     def _flatten(self, A):
 #         rt = []
@@ -1318,29 +1003,3 @@ def _truncate_at_0(arr: np.ndarray) -> np.ndarray:
 #             else:
 #                 rt.append(i)
 #         return rt
-
-
-# def _write_np_array_to_dat(
-#     array: np.ndarray,
-#     dat_name: str,
-#     output_dir: Path,
-#     dtype: type = np.float32,
-#     reshape: bool = True,
-# ) -> None:
-#     """
-#     Write a numpy array to a fortran binary file. Array must be cast to the
-#     appropriate data type before calling this function. If the array is 3D,
-#     the array will be reshaped from (y, x, z) to (z, y, x) for fortran.
-#     """
-#     # Reshape array from (y, x, z) to (z, y, x) (also for fortran)
-#     if reshape:
-#         if len(array.shape) == 3:
-#             array = np.moveaxis(array, 2, 0).astype(dtype)
-#         else:
-#             array = array.astype(dtype)
-#     else:
-#         array = array.astype(dtype)
-
-#     # Write the zarr array to a dat file with scipy FortranFile package
-#     with FortranFile(Path(output_dir, dat_name), "w") as f:
-#         f.write_record(array)

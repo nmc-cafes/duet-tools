@@ -3,23 +3,3 @@ TODO:
 Change depth to height
 For constant calibration change name of arg from target to value
 Decide if there should be one function or separate functions for setting fuel parameter targets
-
-Should fuel types be assigned before parameters?
-    - How things are now:
-        - Targets: only methods and values -- this should stay as is!
-        - FuelParameters: targets are assigned to various parameters for ONE fuel type
-            - The fuel type is named in the class
-        - Those FuelParameters objects then get put in a list within calibrate
-            - That list should, in theory, only include grass, litter, both, or "all"
-            - BUT what if you want to calibrate the density all together, but the height separately?
-    - What if we switched the order of things?
-        - Targets: this stays the same, because a Targets object doesn't know about fuel parameters or types
-        - FuelParameters: Instead of a named fuel type, it should be identified by a parameter
-            - OLD: assign_fuel_parameters(fuel_type = "grass", density=ld, moisture=lm, height=lh)
-            - NEW: create 3 functions: set_density, set_height, set_moisture
-                - All create a FuelParameter object!
-                - set_density(grass = gd, litter = ld)
-                - set_moisture(grass = gm)
-                - set_height(all = ah)
-                - Now calibrate() still takes a list of FuelParameter objects, but they represent fuel parameters!
-                    - calibrate(duet_run, parameter_targets = [dens_targs, moist_targs, height_targs])

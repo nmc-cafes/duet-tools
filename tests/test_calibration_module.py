@@ -12,7 +12,6 @@ from duet_tools.calibration import (
     DuetRun,
     Targets,
     FuelParameter,
-    LandfireQuery,
     import_duet,
     assign_targets,
     set_fuel_parameter,
@@ -21,8 +20,6 @@ from duet_tools.calibration import (
     set_depth,
     calibrate,
     _maxmin_calibration,
-    _meansd_calibration,
-    _constant_calibration,
 )
 
 from duet_tools.utils import write_array_to_dat, read_dat_to_array
