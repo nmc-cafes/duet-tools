@@ -29,11 +29,11 @@ class DuetRun:
     """
 
     def __init__(
-        self, density: np.ndarray, depth: np.ndarray, moisture: np.ndarray = None
+        self, density: np.ndarray, height: np.ndarray, moisture: np.ndarray = None
     ):
         self.density = density
         self.moisture = moisture
-        self.depth = depth
+        self.height = height
 
     def add_moisture_array(self, moisture_array=np.ndarray) -> None:
         """
@@ -43,7 +43,7 @@ class DuetRun:
         ----------
         moisture_array : np.ndarray
             3D array of fuel moisture content values. Must be the same shape as
-            density and depth arrays already present in the object. Values must
+            density and height arrays already present in the object. Values must
             be positive where fuel is present.
 
         Returns
@@ -80,8 +80,8 @@ class DuetRun:
             treesmoist = self._integrate("moisture")
             write_array_to_dat(treesmoist, "treesmoist.dat", directory)
             written_files.append("treesmoist.dat")
-        if self.depth is not None:
-            treesfueldepth = self._integrate("depth")
+        if self.height is not None:
+            treesfueldepth = self._integrate("height")
             write_array_to_dat(treesfueldepth, "treesfueldepth.dat", directory)
             written_files.append("treesfueldepth.dat")
         if len(written_files) == 0:
@@ -107,7 +107,7 @@ class DuetRun:
                 fuel parameter.
         fuel_parameter : str
             Fuel parameter of desired array. Must be one of "density", "moisture", or
-            "depth".
+            "height".
 
         Returns
         -------
@@ -129,8 +129,8 @@ class DuetRun:
             return np.sum(self.density, axis=0)
         if fuel_parameter == "moisture":
             return _density_weighted_average(self.moisture, self.density)
-        if fuel_parameter == "depth":
-            return np.max(self.depth, axis=0)
+        if fuel_parameter == "height":
+            return np.max(self.height, axis=0)
 
     def _validate_input_moisture(self, moisture: np.ndarray):
         if moisture.shape != self.density.shape:
@@ -148,7 +148,7 @@ class DuetRun:
             raise ValueError(
                 f"Fuel type {fuel_type} not supported. Must be one of {fueltypes_allowed}"
             )
-        parameters_allowed = ["density", "moisture", "depth"]
+        parameters_allowed = ["density", "moisture", "height"]
         if fuel_parameter not in parameters_allowed:
             raise ValueError(
                 f"Fuel parameter {fuel_parameter} not supported. Must be one of {parameters_allowed}"
@@ -236,7 +236,7 @@ class FuelParameter:
         return fuel_types
 
     def _validate_fuel_parameter(self, parameter):
-        fuel_parameters_allowed = ["density", "moisture", "depth"]
+        fuel_parameters_allowed = ["density", "moisture", "height"]
         if parameter not in fuel_parameters_allowed:
             raise ValueError(
                 f"Fuel parameter {parameter} not supported. Must be one of {fuel_parameters_allowed}"
@@ -274,10 +274,10 @@ def import_duet(directory: str | Path, nx: int, ny: int, nz: int = 2) -> DuetRun
     density = read_dat_to_array(
         directory=directory, filename="surface_rhof.dat", nx=nx, ny=ny, nz=nz
     )
-    depth = read_dat_to_array(
+    height = read_dat_to_array(
         directory=directory, filename="surface_depth.dat", nx=nx, ny=ny, nz=nz
     )
-    return DuetRun(density=density, depth=depth)
+    return DuetRun(density=density, height=height)
 
 
 def assign_targets(method: str, **kwargs: float | LandfireQuery) -> Targets:
@@ -392,29 +392,29 @@ def set_moisture(**kwargs: Targets):
     return FuelParameter(parameter, fuel_types, targets)
 
 
-def set_depth(**kwargs: Targets):
+def set_height(**kwargs: Targets):
     """
-    Sets depth calibration targets for grass, litter, both separately, or all
+    Sets height calibration targets for grass, litter, both separately, or all
     fuel types together.
 
     Parameters
     ----------
     grass : Targets | None
-        Grass depth calibration targets. Only the grass layer of the DUET bulk
+        Grass height calibration targets. Only the grass layer of the DUET bulk
         density array will be calibrated.
     litter : Targets | None
-        Litter depth calibration targets. Only the litter layer of the DUET bulk
+        Litter height calibration targets. Only the litter layer of the DUET bulk
         density array will be calibrated.
     all : Targets | None
-        Depth calibration targets for all (both) fuel types. Both layers of the
+        Height calibration targets for all (both) fuel types. Both layers of the
         DUET bulk density array will be calibrated together.
 
     Returns
     -------
     FuelParameter :
-        Object representing depth targets for each provided fuel type
+        Object representing height targets for each provided fuel type
     """
-    parameter = "depth"
+    parameter = "height"
     fuel_types = list(kwargs.keys())
     targets = list(kwargs.values())
 
@@ -494,12 +494,12 @@ def _get_array_to_calibrate(duet_run: DuetRun, fueltype: str, fuelparam: str):
         if fueltype == "litter":
             return duet_run.density[1, :, :].copy()
         return np.sum(duet_run.density, axis=0)
-    if fuelparam == "depth":
+    if fuelparam == "height":
         if fueltype == "grass":
-            return duet_run.depth[0, :, :].copy()
+            return duet_run.height[0, :, :].copy()
         if fueltype == "litter":
-            return duet_run.depth[1, :, :].copy()
-        return np.max(duet_run.depth, axis=0)
+            return duet_run.height[1, :, :].copy()
+        return np.max(duet_run.height, axis=0)
     if fuelparam == "moisture":
         if duet_run.moisture:
             if fueltype == "grass":
@@ -518,12 +518,12 @@ def _get_array_to_calibrate(duet_run: DuetRun, fueltype: str, fuelparam: str):
 def _duplicate_duet_run(duet_run: DuetRun) -> DuetRun:
     new_density = duet_run.density.copy() if duet_run.density is not None else None
     new_moisture = duet_run.moisture.copy() if duet_run.moisture is not None else None
-    new_depth = duet_run.depth.copy() if duet_run.depth is not None else None
+    new_height = duet_run.height.copy() if duet_run.height is not None else None
 
     new_duet = DuetRun(
         density=new_density,
         moisture=new_moisture,
-        depth=new_depth,
+        height=new_height,
     )
 
     return new_duet
@@ -593,7 +593,7 @@ def _add_calibrated_array(
     fueltype: str,
     fuelparam: str,
 ) -> DuetRun:
-    for param in ["density", "moisture", "depth"]:
+    for param in ["density", "moisture", "height"]:
         if fuelparam == param:
             if fueltype == "grass":
                 duet_to_calibrate.__dict__[param][0, :, :] = calibrated_array
@@ -619,10 +619,10 @@ def _separate_2d_array(
     if param == "moisture":
         separated[0, :, :][np.where(duet_run.moisture[0, :, :] == 0)] = 0
         separated[1, :, :][np.where(duet_run.moisture[1, :, :] == 0)] = 0
-    if param == "depth":
-        weights = duet_run.depth.copy()
-        weights[0, :, :] = duet_run.depth[0, :, :] / np.max(duet_run.depth, axis=0)
-        weights[1, :, :] = duet_run.depth[1, :, :] / np.max(duet_run.depth, axis=0)
+    if param == "height":
+        weights = duet_run.height.copy()
+        weights[0, :, :] = duet_run.height[0, :, :] / np.max(duet_run.height, axis=0)
+        weights[1, :, :] = duet_run.height[1, :, :] / np.max(duet_run.height, axis=0)
         separated[0, :, :] = calibrated * weights[0, :, :]
         separated[1, :, :] = calibrated * weights[1, :, :]
     return separated

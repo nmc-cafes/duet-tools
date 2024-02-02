@@ -7,7 +7,7 @@ from duet_tools.calibration import (
     assign_targets,
     set_density,
     set_moisture,
-    set_depth,
+    set_height,
     set_fuel_parameter,
     calibrate,
 )
@@ -26,7 +26,7 @@ __all__ = [
     "assign_targets",
     "set_density",
     "set_moisture",
-    "set_depth",
+    "set_height",
     "set_fuel_parameter",
     "calibrate",
     "write_array_to_dat",
