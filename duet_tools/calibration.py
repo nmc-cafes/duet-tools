@@ -76,7 +76,7 @@ class DuetRun:
         None :
             Sets the DuetRun.moisture attribute to the input array
         """
-        _validate_input_moisture(moisture_array, self.density)
+        self._validate_input_moisture(moisture_array)
         self.moisture = moisture_array
 
     def to_quicfire(self, directory: str | Path) -> None:
@@ -132,6 +132,16 @@ class DuetRun:
                 f"Fuel parameter {fuel_parameter} not supported. Must be one of {parameters_allowed}"
             )
         # TODO: write to_numpy
+
+    def _validate_input_moisture(self, moisture: np.ndarray):
+        if moisture.shape != self.density.shape:
+            raise ValueError(
+                f"Input array shape {moisture.shape} must match existing arrays {self.density.shape}."
+            )
+        if self.density[np.where(moisture == 0)].any() != 0:
+            raise ValueError(
+                "Value of moisture array cannot be zero where fuel is present"
+            )
 
 
 class Targets:
@@ -212,7 +222,7 @@ class FuelParameter:
                 "When fuel parameter targets are assigned to all fuel types, "
                 "no other fuel parameter objects should be provided"
             )
-        return self.fuel_types
+        return fuel_types
 
     def _validate_fuel_parameter(self, parameter):
         fuel_parameters_allowed = ["density", "moisture", "depth"]
@@ -401,7 +411,7 @@ def set_depth(**kwargs: Targets):
 
 
 def calibrate(
-    duet_run: DuetRun, fuel_type_targets: list(FuelParameter) | FuelParameter
+    duet_run: DuetRun, fuel_parameter_targets: list(FuelParameter) | FuelParameter
 ) -> DuetRun:
     """
     Calibrates the arrays in a DuetRun object using the provided targets and methods for one
@@ -420,17 +430,17 @@ def calibrate(
     -------
     Instance of class DuetRun with calibrated fuel arrays
     """
-    if isinstance(fuel_type_targets, FuelParameter):
-        fuel_type_targets = [fuel_type_targets]
+    if isinstance(fuel_parameter_targets, FuelParameter):
+        fuel_parameter_targets = [fuel_parameter_targets]
 
     calibrated_duet = _duplicate_duet_run(duet_run)
-    for fueltype_targ in fuel_type_targets:
-        fueltype = fueltype_targ.fuel_type
-        for i in range(len(fueltype_targ.parameters)):
-            fuelparam = fueltype_targ.parameters[i]
+    for fuelparameter in fuel_parameter_targets:
+        fuelparam = fuelparameter.parameter
+        for i in range(len(fuelparameter.fuel_types)):
+            fueltype = fuelparameter.fuel_types[i]
             array_to_calibrate = _get_array_to_calibrate(duet_run, fueltype, fuelparam)
             calibrated_array = _do_calibration(
-                array_to_calibrate, fueltype_targ.targets[i]
+                array_to_calibrate, fuelparameter.targets[i]
             )
             calibrated_duet = _add_calibrated_array(
                 calibrated_duet, calibrated_array, fueltype, fuelparam
@@ -464,15 +474,6 @@ def write_numpy_to_quicfire(array: np.ndarray, directory: str | Path, filename: 
     if isinstance(directory, str):
         directory = Path(directory)
     write_array_to_dat(array=array, dat_name=filename, output_dir=directory)
-
-
-def _validate_input_moisture(moisture: np.ndarray, density: np.ndarray):
-    if moisture.shape != density.shape:
-        raise ValueError(
-            f"Input array shape {moisture.shape} must match existing arrays {density.shape}."
-        )
-    if density[np.where(moisture == 0)].any() != 0:
-        raise ValueError("Value of moisture array cannot be zero where fuel is present")
 
 
 def _get_array_to_calibrate(duet_run: DuetRun, fueltype: str, fuelparam: str):
