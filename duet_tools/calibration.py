@@ -136,13 +136,12 @@ class DuetRun:
 
 class Targets:
     """
-    Class containing target methods and values for fuel parameters
+    Class containing and validating target methods and values for fuel parameters.
     """
 
     def __init__(self, method: str, args: list(str), targets: list):
-        self.method = method
-        self.args = args
-        self.targets = targets
+        self.method = self._validate_method(method)
+        self.args, self.targets = self._validate_target_args(method, args, targets)
         self.calibration_function = self._get_calibration_function(method)
 
     def _get_calibration_function(self, method):
@@ -153,16 +152,75 @@ class Targets:
         if method == "constant":
             return _constant_calibration
 
+    def _validate_method(self, method: str):
+        methods_allowed = ["maxmin", "meansd", "constant", "sb40"]
+        if method not in methods_allowed:
+            raise ValueError(
+                f"Method {method} not supported. Must be one of {methods_allowed}"
+            )
+        return method
 
-class FuelParameters:
+    def _validate_target_args(self, method: str, args: list(str), targets: list(float)):
+        method_dict = {
+            "constant": ["target"],
+            "maxmin": ["max", "min"],
+            "meansd": ["mean", "sd"],
+            "sb40": ["landfire"],
+        }
+        args_allowed = method_dict.get(method)
+        if set(args_allowed) != set(args):
+            raise ValueError(f"Invalid **kwargs for method {method}. Must be {args}")
+
+        targets_dict = dict(zip(args, targets))
+        if method == "maxmin":
+            if targets_dict["max"] <= targets_dict["min"]:
+                raise ValueError("Target maximum must be greater than target minimum")
+        if method == "meansd":
+            if targets_dict["mean"] < targets_dict["sd"]:
+                warnings.warn(
+                    "Target mean is smaller than target sd. Were they input correctly?"
+                )
+        if method == "sb40":
+            if not isinstance(targets_dict["landfire"], LandfireQuery):
+                raise ValueError(
+                    "Value of landfire **kwarg must be of class LandfireQuery. Please use query_landfire()"
+                )
+
+        return args, targets
+
+
+class FuelParameter:
     """
-    Class containing and validating targets for each fuel parameter
+    Class containing and validating calibration targets for a single fuel parameter. Targets can
+    be set for multiple fuel types.
     """
 
-    def __init__(self, fuel_type: str, parameters: list(str), targets: list(Targets)):
-        self.fuel_type = fuel_type
-        self.parameters = parameters
+    def __init__(self, parameter: str, fuel_types: list(str), targets: list(Targets)):
+        self.parameter = self._validate_fuel_parameter(parameter)
+        self.fuel_types = self._validate_fuel_types(fuel_types)
         self.targets = targets
+
+    def _validate_fuel_types(self, fuel_types):
+        fueltypes_allowed = ["grass", "litter", "all"]
+        for fuel_type in fuel_types:
+            if fuel_type not in fueltypes_allowed:
+                raise ValueError(
+                    f"Method {fuel_type} not supported. Must be one of {fueltypes_allowed}"
+                )
+        if "all" in fuel_types and len(fuel_types) > 1:
+            raise ValueError(
+                "When fuel parameter targets are assigned to all fuel types, "
+                "no other fuel parameter objects should be provided"
+            )
+        return self.fuel_types
+
+    def _validate_fuel_parameter(self, parameter):
+        fuel_parameters_allowed = ["density", "moisture", "depth"]
+        if parameter not in fuel_parameters_allowed:
+            raise ValueError(
+                f"Fuel parameter {parameter} not supported. Must be one of {fuel_parameters_allowed}"
+            )
+        return parameter
 
 
 class LandfireQuery:
@@ -218,47 +276,132 @@ def assign_targets(method: str, **kwargs: float | LandfireQuery) -> Targets:
     -------
     Instance of class Targets
     """
-    _validate_method(method)
-    _validate_target_kwargs(method, kwargs)
-
     args = list(kwargs.keys())
     targets = list(kwargs.values())
 
     return Targets(method=method, args=args, targets=targets)
 
 
-def assign_fuel_parameters(fuel_type: str, **kwargs: Targets):
+def set_fuel_parameter(parameter: str, **kwargs: Targets):
     """
-    Assembles calibration targets for each fuel parameter for exactly one fuel type.
+    Sets calibration targets for grass, litter, both separately, or all
+    fuel types together, for a single fuel parameter.
 
     Parameters
     ----------
-    fuel_type: str
-        Fuel type to assign fuel parameter targets to. Must be one of "grass", "litter", "all"
-    **kwargs #TODO
-    density : Targets
-        An object of class Targets defining the calibration method and target values
-        for bulk density
-    moisture : Targets
-        An object of class Targets defining the calibration method and target values
-        for bulk density
-    depth : Targets
-        An object of class Targets defining the calibration method and target values
-        for bulk density
+    parameter : str
+        Fuel parameter for which to set targets
+    grass : Targets | None
+        Grass calibration targets. Only the grass layer of the DUET bulk
+        density array will be calibrated.
+    litter : Targets | None
+        Litter calibration targets. Only the litter layer of the DUET bulk
+        density array will be calibrated.
+    all : Targets | None
+        Calibration targets for all (both) fuel types. Both layers of the
+        DUET bulk density array will be calibrated together.
 
-    Return
-    ------
-    Instance of calss FuelParameters
+    Returns
+    -------
+    FuelParameter :
+        Object representing targets for the given fuel parameter, for each provided fuel type
     """
-    _validate_fuel_type(fuel_type)
-    parameters = list(kwargs.keys())
+    parameter = parameter
+    fuel_types = list(kwargs.keys())
     targets = list(kwargs.values())
 
-    return FuelParameters(fuel_type=fuel_type, parameters=parameters, targets=targets)
+    return FuelParameter(parameter, fuel_types, targets)
+
+
+def set_density(**kwargs: Targets):
+    """
+    Sets bulk density calibration targets for grass, litter, both separately, or all
+    fuel types together.
+
+    Parameters
+    ----------
+    grass : Targets | None
+        Grass bulk density calibration targets. Only the grass layer of the DUET bulk
+        density array will be calibrated.
+    litter : Targets | None
+        Litter bulk density calibration targets. Only the litter layer of the DUET bulk
+        density array will be calibrated.
+    all : Targets | None
+        Bulk density calibration targets for all (both) fuel types. Both layers of the
+        DUET bulk density array will be calibrated together.
+
+    Returns
+    -------
+    FuelParameter :
+        Object representing bulk density targets for each provided fuel type
+    """
+    parameter = "density"
+    fuel_types = list(kwargs.keys())
+    targets = list(kwargs.values())
+
+    return FuelParameter(parameter, fuel_types, targets)
+
+
+def set_moisture(**kwargs: Targets):
+    """
+    Sets moisture calibration targets for grass, litter, both separately, or all
+    fuel types together.
+
+    Parameters
+    ----------
+    grass : Targets | None
+        Grass moisture calibration targets. Only the grass layer of the DUET bulk
+        density array will be calibrated.
+    litter : Targets | None
+        Litter moisture calibration targets. Only the litter layer of the DUET bulk
+        density array will be calibrated.
+    all : Targets | None
+        Moisture calibration targets for all (both) fuel types. Both layers of the
+        DUET bulk density array will be calibrated together.
+
+    Returns
+    -------
+    FuelParameter :
+        Object representing moisture targets for each provided fuel type
+    """
+    parameter = "moisture"
+    fuel_types = list(kwargs.keys())
+    targets = list(kwargs.values())
+
+    return FuelParameter(parameter, fuel_types, targets)
+
+
+def set_depth(**kwargs: Targets):
+    """
+    Sets depth calibration targets for grass, litter, both separately, or all
+    fuel types together.
+
+    Parameters
+    ----------
+    grass : Targets | None
+        Grass depth calibration targets. Only the grass layer of the DUET bulk
+        density array will be calibrated.
+    litter : Targets | None
+        Litter depth calibration targets. Only the litter layer of the DUET bulk
+        density array will be calibrated.
+    all : Targets | None
+        Depth calibration targets for all (both) fuel types. Both layers of the
+        DUET bulk density array will be calibrated together.
+
+    Returns
+    -------
+    FuelParameter :
+        Object representing depth targets for each provided fuel type
+    """
+    parameter = "depth"
+    fuel_types = list(kwargs.keys())
+    targets = list(kwargs.values())
+
+    return FuelParameter(parameter, fuel_types, targets)
 
 
 def calibrate(
-    duet_run: DuetRun, fuel_type_targets: list(FuelParameters) | FuelParameters
+    duet_run: DuetRun, fuel_type_targets: list(FuelParameter) | FuelParameter
 ) -> DuetRun:
     """
     Calibrates the arrays in a DuetRun object using the provided targets and methods for one
@@ -277,9 +420,8 @@ def calibrate(
     -------
     Instance of class DuetRun with calibrated fuel arrays
     """
-    if isinstance(fuel_type_targets, FuelParameters):
+    if isinstance(fuel_type_targets, FuelParameter):
         fuel_type_targets = [fuel_type_targets]
-    _validate_fuel_parameters(fuel_type_targets)
 
     calibrated_duet = _duplicate_duet_run(duet_run)
     for fueltype_targ in fuel_type_targets:
@@ -322,56 +464,6 @@ def write_numpy_to_quicfire(array: np.ndarray, directory: str | Path, filename: 
     if isinstance(directory, str):
         directory = Path(directory)
     write_array_to_dat(array=array, dat_name=filename, output_dir=directory)
-
-
-def _validate_method(method):
-    methods_allowed = ["maxmin", "meansd", "constant", "sb40"]
-    if method not in methods_allowed:
-        raise ValueError(
-            f"Method {method} not supported. Must be one of {methods_allowed}"
-        )
-
-
-def _validate_fuel_type(fuel_type):
-    fueltypes_allowed = ["grass", "litter", "all"]
-    if fuel_type not in fueltypes_allowed:
-        raise ValueError(
-            f"Method {fuel_type} not supported. Must be one of {fueltypes_allowed}"
-        )
-
-
-def _validate_target_kwargs(method: str, kwargs: dict):
-    method_dict = {
-        "constant": ["target"],
-        "maxmin": ["max", "min"],
-        "meansd": ["mean", "sd"],
-        "sb40": ["landfire"],
-    }
-    args = method_dict.get(method)
-    if set(args) != set(list(kwargs.keys())):
-        raise ValueError(f"Invalid **kwargs for method {method}. Must be {args}")
-    if method == "maxmin":
-        if kwargs["max"] <= kwargs["min"]:
-            raise ValueError("Target maximum must be greater than target minimum")
-    if method == "meansd":
-        if kwargs["mean"] < kwargs["sd"]:
-            warnings.warn(
-                "Target mean is smaller than target sd. Were they input correctly?"
-            )
-    if method == "sb40":
-        if not isinstance(kwargs["landfire"], LandfireQuery):
-            raise ValueError(
-                "Value of landfire **kwarg must be of class LandfireQuery. Please use query_landfire()"
-            )
-
-
-def _validate_fuel_parameters(fuel_parameters):
-    fuel_types = [param.fuel_type for param in fuel_parameters]
-    if "all" in fuel_types and len(fuel_types) > 1:
-        raise ValueError(
-            "When fuel parameter targets are assigned to all fuel types, "
-            "no other fuel parameter objects should be provided"
-        )
 
 
 def _validate_input_moisture(moisture: np.ndarray, density: np.ndarray):

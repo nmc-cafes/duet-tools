@@ -2,6 +2,7 @@ TODO:
 
 Change depth to height
 For constant calibration change name of arg from target to value
+Decide if there should be one function or separate functions for setting fuel parameter targets
 
 Should fuel types be assigned before parameters?
     - How things are now:
