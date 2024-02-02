@@ -234,7 +234,7 @@ def assign_fuel_parameters(fuel_type: str, **kwargs: Targets):
     Parameters
     ----------
     fuel_type: str
-        Fuel type to assign fuel parameter targets to.
+        Fuel type to assign fuel parameter targets to. Must be one of "grass", "litter", "all"
     **kwargs #TODO
     density : Targets
         An object of class Targets defining the calibration method and target values
@@ -369,7 +369,7 @@ def _validate_fuel_parameters(fuel_parameters):
     fuel_types = [param.fuel_type for param in fuel_parameters]
     if "all" in fuel_types and len(fuel_types) > 1:
         raise ValueError(
-            "When fuel parameter targets are assigned to all fuel types,"
+            "When fuel parameter targets are assigned to all fuel types, "
             "no other fuel parameter objects should be provided"
         )
 

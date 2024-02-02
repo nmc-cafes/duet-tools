@@ -189,3 +189,26 @@ class TestCalibrate:
             np.float32(0.05),
             abs_tol=10**-6,
         )
+
+    def test_fueltype_all(self):
+        duet_run = import_duet(TMP_DIR, 252, 252)
+        density = assign_targets(method="maxmin", max=2.0, min=0.5)
+        grass_depth = assign_targets(method="constant", target=0.75)
+        litter_depth = assign_targets(method="constant", target=0.15)
+        # I didn't realize this, but this necessitates doing three FuelParameter objects
+        density_targets = assign_fuel_parameters(fuel_type="all", density=density)
+        grass_depth_targets = assign_fuel_parameters(
+            fuel_type="grass", depth=grass_depth
+        )
+        litter_depth_targets = assign_fuel_parameters(
+            fuel_type="litter", depth=litter_depth
+        )
+        calibrated_duet = calibrate(
+            duet_run,
+            fuel_type_targets=[
+                grass_depth_targets,
+                litter_depth_targets,
+                density_targets,
+            ],
+        )
+        assert isinstance(calibrated_duet, DuetRun)

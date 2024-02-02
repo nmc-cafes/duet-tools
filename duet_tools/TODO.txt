@@ -1,118 +1,24 @@
 TODO:
 
-from_fastfuels method to set up domain
-Change structure of module (brainstorm):
-    - duet-tools : Calibrator :: quicfire-tools : SimulationInputs
-    - duet-tools : FuelType :: quicfire-tools : InputFile
-    - duet-tools : fuel types :: quicfire-tools : input files
-        - Grass
-        - Litter
-    
-    duet_run = Calibrator.import_duet(nx,ny,nz)
-    duet_run.grass.assign_targets(min = 0.2, max = 1.0)
-    duet_run.litter.assign_targets(mean = 0.5, sd = 0.05)
-    duet_run.litter.add_tree_species("longleaf_pine", layer = 2)
-    duet_run.litter.longleaf_pine.assign_targets(min = 0.8, max = 0.8)
+Change depth to height
+For constant calibration change name of arg from target to value
 
-    Once you've assigned targets to each fuel type, then you can calibrate them.
-    They will calibrate based on whatever targets you supplied, and will throw an
-    error if no targets are assigned.
-
-    duet_run.grass.calibrate()
-    duet_run.litter.calibrate()
-
-    Then we can either spit out an array, or write to a dat file
-    duet_run.to_numpy()
-    duet_run.to_numpy(fuel_types = 'litter')
-    duet_run.to_file(combine = True)
-
-    ^ The argument fuel_types should take 'all' (default), 'grass', 'litter', or any of the tree species.
-    It should be in both to_numpy and to_file. Both should also have a combine argument, probably set to False.
-
-    That should get me started
-
-    How should I access arrays? Probably just through to_numpy and to_file
-        - store in a dict!
-
-    How to do .assign_targets for different arrays?
-        - .target_moisutre(sb40 = False, min = None, max = None, mean = None, sd = None)
-        - .target_bulk_density()
-        - .target_height()
-        - Then to calibrate:
-            - duet_run.grass.calibrate(bulk_denstiy = True, moisture = True, height = True)
-    
-    So now the workflow is:
-    duet_run = Calibrator.import_duet(dir,nx,ny,nz)
-    duet_run.grass.target_bulk_density(sb40=True)
-    duet_run.grass.target_height(min = 0.5, max = 0.5)
-    duet_run.grass.target_moisture(mean = 0.2, sd = 0.01)
-    duet_run.litter.add_tree_species("longleaf_pine", layer = 1)
-    duet_run.litter.add_tree_species("turkey_oak", layer = 2)
-    duet_run.litter.longleaf_pine.target_bulk_density(mean...)
-
-DUET DOESNT EXPORT MOISTURE!!
-
-When we assign targets for bulk density, are we assigning CELL bulk density, or FUEL bulk density?
-Would it make more sense to assign FUEL bulk density??
-Does DUET have a constant fuel bulk density that it uses to calculate cell bulk density? NO!
-
-Switch from OOP to FP:
-    - Brainstorm how it would be used
-        # first create DuetRun class using import_duet
-        duet_run = import_duet(directory, nx, ny, nz)
-
-        # assign targets from user
-        litter_moisture = assign_targets(method = "constant", constant)
-        litter_density = assign_targets(method = "maxmin", max, min)
-        litter_depth = assign_targets(method = "maxmin", max, min)
-
-        # assign targets from landfire
-        unit_fastfuels = get_unit_from_fastfuels(zroot)
-        unit_geojson = get_unit_from_geojson(directory)
-        grass_sb40 = assign_targets(method = "sb40", bbox = unit_geojson)
-
-        # combine targets for each fuel type
-        litter_targets = fueltype_targets(moisture=litter_moisture,density=litter_density,depth=litter_depth)
-        grass_targets = fueltype_targets(moisture=grass_sb40,density=grass_sb40,depth=grass_sb40)
-        
-        # use the calibrate function to create a new DuetRun object
-        calibrated_duet = calibrate(duet_run, grass=grass_targets, litter=litter_targets)
-
-        # access arrays from DuetRun
-        litter_moisture = calibrated_duet.to_numpy(fueltype = "litter", parameter = "moisture")
-        separated_density = calibrated_duet.to_numpy(fueltype = "separated", parameter = "density") #3D array of all fuels
-        integrated_depth = calibrated_duet.to_numpy(fueltype = "integrated", parameter = "depth") #2D array of all fuels
-
-        # write to dat file(s)
-        duet_run.to_quicfire(directory) # writes treesrhof.dat, treesmoist.dat, and treesfueldepth.dat 
-        write_numpy_to_quicfire(litter_moisture, directory, "treesmoist.dat")
-
-    - Notes:
-        Objects:
-            - DuetRun: stores arrays, has to_numpy and to_file methods
-            - Targets: stores target methods and values
-            - FuelParameters: stores and VALIDATES targets for each fuel type
-        Definitely not sure Targets and FuelParameters should exist...
-        When method = "sb40", the bbox argument should potentially be:
-            - a geojson
-            - a shapely polyon
-            - a list or dict of coordinates
-        When multiple fuel types use the sb40 method, landfire gets queried twice.
-            - do we have to use weird logic to solve that?
-        Lots of repetition in the calibrate function...
-            - may we should use dicts instead of classes so that we can write a function to figure out the calibration method
-            # if grass was a dict...
-            method_dict = {
-                "constant": {"func": _constant_calibration, "args": ["constant"]},
-                "maxmin": {"func": _maxmin_calibration, "args": ["max", "min"]},
-                "meansd": {"func": _maxmin_calibration, "args": ["mean", "sd"]},
-                "sb40": {"func": _sb40_calibration, "args": ["bbox"]},
-            }
-            for fueltype in [grass,litter,all]:
-                for parameter in fueltype.values():
-                    for method, call in METHOD_DICT.items():
-                        if parameter["method"] == method:
-                            func = call[func]
-                            args = [parameter[arg] for arg in call[args]]
-                            _do_calibration(grass_dens,func,args)
-            - that got really convoluted.... but it is shorter
+Should fuel types be assigned before parameters?
+    - How things are now:
+        - Targets: only methods and values -- this should stay as is!
+        - FuelParameters: targets are assigned to various parameters for ONE fuel type
+            - The fuel type is named in the class
+        - Those FuelParameters objects then get put in a list within calibrate
+            - That list should, in theory, only include grass, litter, both, or "all"
+            - BUT what if you want to calibrate the density all together, but the height separately?
+    - What if we switched the order of things?
+        - Targets: this stays the same, because a Targets object doesn't know about fuel parameters or types
+        - FuelParameters: Instead of a named fuel type, it should be identified by a parameter
+            - OLD: assign_fuel_parameters(fuel_type = "grass", density=ld, moisture=lm, height=lh)
+            - NEW: create 3 functions: set_density, set_height, set_moisture
+                - All create a FuelParameter object!
+                - set_density(grass = gd, litter = ld)
+                - set_moisture(grass = gm)
+                - set_height(all = ah)
+                - Now calibrate() still takes a list of FuelParameter objects, but they represent fuel parameters!
+                    - calibrate(duet_run, parameter_targets = [dens_targs, moist_targs, height_targs])
