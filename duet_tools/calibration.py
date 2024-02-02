@@ -590,7 +590,7 @@ def _add_calibrated_array(
                 duet_to_calibrate.__dict__[param][1, :, :] = calibrated_array
             if fueltype == "all":
                 duet_to_calibrate.__dict__[param] = _separate_2d_array(
-                    calibrated_array, param, duet_to_calibrate.density
+                    calibrated_array, param, duet_to_calibrate
                 )
     return duet_to_calibrate
 
