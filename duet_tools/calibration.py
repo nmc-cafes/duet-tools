@@ -7,9 +7,21 @@ from __future__ import annotations
 from pathlib import Path
 import importlib.resources
 import warnings
+import re
 
 # External Imports
 import numpy as np
+import pandas as pd
+import geojson
+import shapely
+import zipfile
+from shapely.ops import transform
+from pyproj import Transformer
+import landfire
+from landfire.geospatial import get_bbox_from_polygon
+import rasterio as rio
+from rasterio.enums import Resampling
+from rasterio.mask import mask
 
 # Internal Imports
 from duet_tools.utils import read_dat_to_array, write_array_to_dat
@@ -186,7 +198,7 @@ class Targets:
             "constant": ["value"],
             "maxmin": ["max", "min"],
             "meansd": ["mean", "sd"],
-            "sb40": ["landfire"],
+            "sb40": ["query", "fuel_type"],
         }
         args_allowed = method_dict.get(method)
         if set(args_allowed) != set(args):
@@ -202,9 +214,9 @@ class Targets:
                     "Target mean is smaller than target sd. Were they input correctly?"
                 )
         if method == "sb40":
-            if not isinstance(targets_dict["landfire"], LandfireQuery):
+            if not isinstance(targets_dict["query"], LandfireQuery):
                 raise ValueError(
-                    "Value of landfire **kwarg must be of class LandfireQuery. Please use query_landfire()"
+                    "Value of query **kwarg must be of class LandfireQuery. Please use query_landfire()"
                 )
 
         return args, targets
@@ -249,6 +261,18 @@ class LandfireQuery:
     Class containing the information from a LandFire query, to be passed to assign_targets()
     """
 
+    def __init__(
+        self,
+        fuel_types: np.ndarray,
+        density: np.ndarray,
+        moisture: np.ndarray,
+        height: np.ndarray,
+    ):
+        self.fuel_types = fuel_types
+        self.density = density
+        self.moisture = moisture
+        self.height = height
+
 
 def import_duet(directory: str | Path, nx: int, ny: int, nz: int = 2) -> DuetRun:
     """
@@ -278,6 +302,62 @@ def import_duet(directory: str | Path, nx: int, ny: int, nz: int = 2) -> DuetRun
         directory=directory, filename="surface_depth.dat", nx=nx, ny=ny, nz=nz
     )
     return DuetRun(density=density, height=height)
+
+
+def query_landfire(
+    area_of_interest: geojson.Polygon | shapely.Polygon,
+    directory: str | Path,
+    input_epsg: int,
+    delete_files: bool = True,
+) -> LandfireQuery:
+    """
+    Creates and submits a LANDFIRE query for a specified area of interest.
+
+    Parameters
+    ----------
+    area_of_interest : geojson.Polygon | shapely.Polygon
+        Area in which to query LANDFIRE data. For best results, dimensions in meters should
+        match (nx*dx, ny*dy) of DUET domain.
+    directory : Path | str
+        Directory where files associated with the LANDFIRE query will be saved.
+    input_epsg : int
+        EPSG number for CRS of area_of_interest polyong
+    delete_files : bool = True
+        Whether to delete intermediate files created in the process of querying LANDFIRE data. Defaults to True
+
+    Returns
+    -------
+    LandfireQuery
+    """
+    if isinstance(directory, str):
+        directory = Path(directory)
+
+    if isinstance(area_of_interest, shapely.Polygon):
+        area_of_interest = geojson.Polygon([list(area_of_interest.exterior.coords)])
+
+    if input_epsg != 5070:
+        area_of_interest = _reproject_geojson(area_of_interest, input_epsg)
+
+    _query_landfire(poly=area_of_interest, directory=directory)
+    landfire_arr = _landfire_to_array(area_of_interest, directory)
+
+    # Import SB40 FBFM parameters table
+    sb40_params_path = DATA_PATH / "sb40_parameters.csv"
+    sb40_params = pd.read_csv(sb40_params_path)
+
+    # Generate dict of fastfuels bulk density values and apply to Landfire query
+    sb40_dict = _get_sb40_fuel_params(sb40_params)
+    sb40_arr = _get_sb40_arrays(landfire_arr, sb40_dict)
+
+    if delete_files:
+        _delete_intermediate_files(directory)
+
+    return LandfireQuery(
+        fuel_types=sb40_arr[0, :, :],
+        density=sb40_arr[1, :, :],
+        moisture=sb40_arr[2, :, :],
+        height=sb40_arr[3, :, :],
+    )
 
 
 def assign_targets(method: str, **kwargs: float | LandfireQuery) -> Targets:
@@ -651,3 +731,224 @@ def _density_weighted_average(moisture: np.ndarray, density: np.ndarray) -> np.n
     weights[weights == 0] = 0.01
     integrated = np.average(moisture, axis=0, weights=weights)
     return integrated
+
+
+def _query_landfire(
+    poly: geojson.Polygon,
+    directory: Path,
+) -> None:
+    """
+    Download a grid of SB40 fuel models from Landfire for the unit and convert to a numpy array
+    """
+
+    bbox = get_bbox_from_polygon(aoi_polygon=poly, crs=5070)
+
+    # Download Landfire data to output directory
+    lf = landfire.Landfire(bbox, output_crs="5070")
+    lf.request_data(
+        layers=["200F40_19"], output_path=Path(directory, "landfire_sb40.zip")
+    )
+
+    # Exctract tif from compressed download folder and rename
+    with zipfile.ZipFile(Path(directory, "landfire_sb40.zip")) as zf:
+        extension = ".tif"
+        rename = "landfire_sb40.tif"
+        info = zf.infolist()
+        for file in info:
+            if file.filename.endswith(extension):
+                file.filename = rename
+                zf.extract(file, directory)
+
+
+def _landfire_to_array(
+    poly: geojson.Polygon, directory: Path, duet_res: int = 2
+) -> np.ndarray:
+    # Upsample landfire raster to the quicfire resolution
+    with rio.open(Path(directory, "landfire_sb40.tif")) as sb:
+        upscale_factor = 30 / duet_res  # lf res/qf res
+        profile = sb.profile.copy()
+        # resample data to target shape
+        data = sb.read(
+            out_shape=(
+                sb.count,
+                int(sb.height * upscale_factor),
+                int(sb.width * upscale_factor),
+            ),
+            resampling=Resampling.nearest,
+        )
+
+        # scale image transform
+        transform = sb.transform * sb.transform.scale(
+            (sb.width / data.shape[-1]), (sb.height / data.shape[-2])
+        )
+        profile.update(
+            {
+                "height": data.shape[-2],
+                "width": data.shape[-1],
+                "transform": transform,
+            }
+        )
+        with rio.open(Path(directory, "sb40_upsampled.tif"), "w", **profile) as dataset:
+            dataset.write(data)
+
+    # Crop the upsampled raster to the unit bounds
+    with rio.open(Path(directory, "sb40_upsampled.tif"), "r+") as rst:
+        out_image, out_transform = mask(rst, [poly], crop=True)
+        out_meta = rst.meta
+        out_meta.update(
+            {
+                "driver": "GTiff",
+                "height": out_image.shape[1],
+                "width": out_image.shape[2],
+                "transform": out_transform,
+            }
+        )
+        with rio.open(Path(directory, "sb40_cropped.tif"), "w", **out_meta) as cropped:
+            cropped.write(out_image)
+
+    # Read in the cropped raster as a numpy array
+    with rio.open(Path(directory, "sb40_cropped.tif")) as rst:
+        arr = rst.read(1)
+
+    return arr[arr > 0]
+
+
+def _get_sb40_fuel_params(params: pd.DataFrame) -> dict:
+    """
+    Builds a dictionary of SB40 fuel parameter values and converts them to
+    the official FastFuels units
+
+    Returns:
+        dict: SB40 parameters for each fuel model
+    """
+
+    # Convert tons/ac-ft to kg/m^3
+    params["1_hr_kg_per_m3"] = params["1_hr_t_per_ac"] * 0.22417
+    params["10_hr_kg_per_m3"] = params["10_hr_t_per_ac"] * 0.22417
+    params["100_hr_kg_per_m3"] = params["100_hr_t_per_ac"] * 0.22417
+    params["live_herb_kg_per_m3"] = params["live_herb_t_per_ac"] * 0.22417
+    params["live_woody_kg_per_m3"] = params["live_woody_t_per_ac"] * 0.22417
+
+    # Convert inverse feet to meters
+    params["dead_1_hr_sav_ratio_1_per_m"] = (
+        params["dead_1_hr_sav_ratio_1_per_ft"] * 3.2808
+    )
+    params["live_herb_sav_ratio_1_per_m"] = (
+        params["live_herb_sav_ratio_1_per_ft"] * 3.2808
+    )
+    params["live_wood_sav_ratio_1_per_m"] = (
+        params["live_wood_sav_ratio_1_per_ft"] * 3.2808
+    )
+
+    # Convert percent to ratio
+    params["dead_fuel_extinction_moisture"] /= 100
+
+    # Convert feet to meters
+    params["fuel_bed_depth_m"] = params["fuel_bed_depth_ft"] * 0.3048
+
+    # Compute wet loading
+    params["wet_load"] = params["1_hr_kg_per_m3"] + params["live_herb_kg_per_m3"]
+
+    # Compute a live herb curing factor alpha as a function of wet loading.
+    # This is kind of a B.S. approach raised by Rod on a phone call with
+    # Anthony on 02/28/2023. I don't like this at all, but it is a temporary
+    # Fix for the BP3D team to run some simulations.
+    # low_load_fuel_models = [
+    params["alpha"] = [0.5 if rho > 1 else 1.0 for rho in params["wet_load"]]
+
+    # Compute dry loading
+    params["dry_herb_load"] = params["live_herb_kg_per_m3"] * params["alpha"]
+    params["dry_load"] = params["1_hr_kg_per_m3"] + params["dry_herb_load"]
+
+    # Compute SAV
+    params["sav_1hr_ratio"] = params["1_hr_kg_per_m3"] / params["dry_load"]
+    params["sav_1hr"] = params["sav_1hr_ratio"] * params["dead_1_hr_sav_ratio_1_per_m"]
+    params["sav_herb_ratio"] = params["dry_herb_load"] / params["dry_load"]
+    params["sav_herb"] = (
+        params["sav_herb_ratio"] * params["live_herb_sav_ratio_1_per_m"]
+    )
+    params["sav"] = params["sav_1hr"] + params["sav_herb"]
+
+    # Convert nan to 0
+    params.fillna(0, inplace=True)
+
+    # Create dictionary for assigning fuel types for DUET calibration
+    duet_dict = {
+        "NB": 0,  # 0 = NEUTRAL, i.e. not predominantly grass or litter
+        "GR": 1,  # 1 = GRASS predominantly
+        "GS": 1,
+        "SH": 1,  # I am considering shrubs as grass
+        "TU": 0,
+        "TL": -1,  # -1 = LITTER predominantly
+        "SB": 0,
+    }
+
+    # Add column to df with DUET designations
+    pattern = r"[0-9]"  # take out numbers from fbfm_type strings
+    params["fbfm_cat"] = params["fbfm_code"].apply(lambda x: re.sub(pattern, "", x))
+    params["duet_fuel_type"] = params["fbfm_cat"].apply(lambda x: duet_dict.get(x))
+
+    # Build the dictionary with fuel parameters for the Scott and Burgan 40
+    # fire behavior fuel models. Dict format: key ->
+    # [name, loading (tons/ac), SAV (1/ft), ext. MC (percent), bed depth (ft)]
+    # Note: Eventually we want to get rid of this and just use the dataframe.
+    # This is legacy from the old parameter table json.
+    sb40_dict = {}
+    for key in params["key"]:
+        row = params[params["key"] == key]
+        sb40_dict[key] = [
+            row["fbfm_code"].values[0],
+            row["dry_load"].values[0],
+            row["sav"].values[0],
+            row["dead_fuel_extinction_moisture"].values[0],
+            row["fuel_bed_depth_m"].values[0],
+            row["duet_fuel_type"].values[0],
+        ]
+
+    return sb40_dict
+
+
+def _get_sb40_arrays(sb40_keys: np.ndarray, sb40_dict: dict) -> np.ndarray:
+    """
+    Use a dictionary of bulk density and fuel types that correspond to SB40
+    fuel models to assign those values across the study area.
+
+    Fuel types are as follows:
+    - 1: Predominantly grass. All cells with a GR, GS, or SH designation from SB40.
+    - -1: Predominantly tree litter. All cells with a TL designation from SB40.
+    - 0: Neither predominantly grass or tree litter. All other SB40 designations.
+
+    Returns:
+    3D np.ndarray:
+    4 layers:
+        1. fuel types
+        2. bulk density values as calculated by fastfuels
+        3. fuel moisture content values as calculated by fastfuels
+        4. fuel height values as caluclated by fastfuels
+    """
+    val_idx = [5, 1, 3, 4]
+    fuel_arr = np.zeros((4, sb40_keys.shape[1], sb40_keys.shape[0]))
+    for i in range(len(val_idx)):
+        layer_dict = {key: val[val_idx[i]] for key, val in sb40_dict.items()}
+        layer = np.vectorize(layer_dict.get)(sb40_keys)
+        fuel_arr[i, :, :] = layer
+
+    return fuel_arr
+
+
+def _reproject_geojson(poly: geojson.Polygon, input_epsg: int, target_epsg: int = 5070):
+    transformer = Transformer.from_crs(input_epsg, target_epsg, always_xy=True)
+    projected_polygon = list(transform(transformer.transform, [poly].coordinates[0]))
+
+    return geojson.Polygon([projected_polygon])
+
+
+def _delete_intermediate_files(directory: Path):
+    # Name intermediate files
+    temp = [
+        "landfire_sb40.zip",
+        "landfire_sb40.tif",
+        "sb40_upsampled.tif",
+        "sb40_cropped.tif",
+    ]
+    [Path(directory, file).unlink() for file in temp if Path(directory, file).exists()]
