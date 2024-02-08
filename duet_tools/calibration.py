@@ -1,6 +1,7 @@
 """
 DUET Tools Calibration module
 """
+
 from __future__ import annotations
 
 # Core Imports
@@ -15,7 +16,6 @@ import pandas as pd
 import geojson
 import shapely
 import zipfile
-from shapely.ops import transform
 from pyproj import Transformer
 import landfire
 from landfire.geospatial import get_bbox_from_polygon
@@ -186,7 +186,7 @@ class Targets:
             return _constant_calibration
 
     def _validate_method(self, method: str):
-        methods_allowed = ["maxmin", "meansd", "constant", "sb40"]
+        methods_allowed = ["maxmin", "meansd", "constant"]
         if method not in methods_allowed:
             raise ValueError(
                 f"Method {method} not supported. Must be one of {methods_allowed}"
@@ -198,7 +198,6 @@ class Targets:
             "constant": ["value"],
             "maxmin": ["max", "min"],
             "meansd": ["mean", "sd"],
-            "sb40": ["query", "fuel_type"],
         }
         args_allowed = method_dict.get(method)
         if set(args_allowed) != set(args):
@@ -212,11 +211,6 @@ class Targets:
             if targets_dict["mean"] < targets_dict["sd"]:
                 warnings.warn(
                     "Target mean is smaller than target sd. Were they input correctly?"
-                )
-        if method == "sb40":
-            if not isinstance(targets_dict["query"], LandfireQuery):
-                raise ValueError(
-                    "Value of query **kwarg must be of class LandfireQuery. Please use query_landfire()"
                 )
 
         return args, targets
@@ -272,6 +266,97 @@ class LandfireQuery:
         self.density = density
         self.moisture = moisture
         self.height = height
+        self._validate_arrays_shape()
+
+    def get_targets(self, fuel_type: str, parameter: str, method: str):
+        self._validate_get_targets(fuel_type, parameter, method)
+        # select fuel parameter
+        if parameter == "density":
+            param_arr = self.density
+        elif parameter == "moisture":
+            param_arr = self.moisture
+        else:
+            param_arr = self.height
+        # select fuel type
+        if fuel_type == "grass":
+            fuel_arr = param_arr[self._get_fueltype_indices(self.fuel_types, 1)]
+        elif fuel_type == "litter":
+            fuel_arr = param_arr[self._get_fueltype_indices(self.fuel_types, -1)]
+        else:
+            fuel_arr = param_arr
+        # get targets based on method
+        fuel_arr = fuel_arr[np.where(fuel_arr > 0)]
+        if method == "maxmin":
+            if np.max(fuel_arr) == np.min(fuel_arr):
+                raise ValueError(
+                    f"There is only one value for {fuel_type} {parameter}. "
+                    "Please use 'constant' calibration method"
+                )
+            return Targets(
+                method="maxmin",
+                args=["max", "min"],
+                targets=[np.max(fuel_arr), np.min(fuel_arr)],
+            )
+        if method == "meansd":
+            if np.max(fuel_arr) == np.min(fuel_arr):
+                raise ValueError(
+                    f"There is only one value for {fuel_type} {parameter}. "
+                    "Please use 'constant' calibration method"
+                )
+            return Targets(
+                method="meansd",
+                args=["mean", "sd"],
+                targets=[np.mean(fuel_arr), np.std(fuel_arr)],
+            )
+        if method == "constant":
+            if np.max(fuel_arr) != np.min(fuel_arr):
+                raise ValueError(
+                    "Multiple values present in Landfire query. Please use either maxmin "
+                    "or meansd calibration method."
+                )
+            return Targets(
+                method="constant", args=["value"], targets=[np.mean(fuel_arr)]
+            )
+
+    def _get_fueltype_indices(self, arr: np.ndarray, ft: int):
+        ft_dict = {1: "grass", -1: "litter"}
+        if ft not in arr.flatten():
+            raise ValueError(f"Landfire query does not contain any {ft_dict[ft]} fuel.")
+        return np.where(arr == ft)
+
+    def _validate_arrays_shape(self):
+        attributes = [
+            getattr(self, attr)
+            for attr in dir(self)
+            if not callable(getattr(self, attr)) and not attr.startswith("__")
+        ]
+        first_shape = None
+        for arr in attributes:
+            if isinstance(arr, np.ndarray):
+                if first_shape is None:
+                    first_shape = arr.shape
+                elif arr.shape != first_shape:
+                    raise ValueError(
+                        "All arrays in LandfireQuery must have the same shape."
+                    )
+
+    def _validate_get_targets(self, fuel_type, parameter, method):
+        fueltypes_allowed = ["grass", "litter", "all"]
+        parameters_alowed = ["density", "moisture", "height"]
+        methods_allowed = ["maxmin", "meansd", "constant"]
+
+        if fuel_type not in fueltypes_allowed:
+            raise ValueError(
+                f"Fuel type {fuel_type} not supported. Must be one of {fueltypes_allowed}."
+            )
+        if parameter not in parameters_alowed:
+            raise ValueError(
+                f"Parameter {parameter} not supported. Must be one of {parameters_alowed}."
+            )
+        if method not in methods_allowed:
+            raise ValueError(
+                f"Method {method} not supported. Must be one of {methods_allowed}."
+            )
 
 
 def import_duet(directory: str | Path, nx: int, ny: int, nz: int = 2) -> DuetRun:
@@ -332,14 +417,16 @@ def query_landfire(
     if isinstance(directory, str):
         directory = Path(directory)
 
-    if isinstance(area_of_interest, shapely.Polygon):
-        area_of_interest = geojson.Polygon([list(area_of_interest.exterior.coords)])
+    if isinstance(area_of_interest, geojson.Polygon):
+        area_of_interest = shapely.Polygon(area_of_interest["coordinates"][0])
 
-    if input_epsg != 5070:
-        area_of_interest = _reproject_geojson(area_of_interest, input_epsg)
+    if input_epsg != 4236:
+        area_of_interest = _reproject_polygon(
+            area_of_interest, input_epsg, target_epsg=4326
+        )
 
     _query_landfire(poly=area_of_interest, directory=directory)
-    landfire_arr = _landfire_to_array(area_of_interest, directory)
+    landfire_arr = _landfire_to_array(directory)
 
     # Import SB40 FBFM parameters table
     sb40_params_path = DATA_PATH / "sb40_parameters.csv"
@@ -360,7 +447,7 @@ def query_landfire(
     )
 
 
-def assign_targets(method: str, **kwargs: float | LandfireQuery) -> Targets:
+def assign_targets(method: str, **kwargs: float) -> Targets:
     """
     Assigns target values and calculation method for exactly one fuel type and parameter
 
@@ -381,6 +468,35 @@ def assign_targets(method: str, **kwargs: float | LandfireQuery) -> Targets:
     targets = list(kwargs.values())
 
     return Targets(method=method, args=args, targets=targets)
+
+
+def assign_targets_from_sb40(
+    query: LandfireQuery, fuel_type: str, parameter: str, method: str = "maxmin"
+):
+    """
+    Assign a calibration target and method for a given fuel type and parameter.
+
+    Parameters
+    ----------
+    query : LandfireQuery
+        An object of class LandfireQuery created with query_landfire. Calibration targets
+        will be calculated from these values.
+    fuel_type : str
+        The fuel type to obtain target values for. Must be one of "grass", "litter", or "all".
+    parameter : str
+        The fuel parameter to obtain target values for. Must be one of "density", "moisture", or "height".
+    method : str
+        The desired calibration method for the sb40-derived targets. Must be one of "maxmin", "meandsd",
+        or "constant". Default is "maxmin". "constant" is only recommended if only one parameter value
+        is present for the given fuel type. "meansd" is not recommended since values often do not follow a
+        normal distribution.
+
+    Returns
+    -------
+    Targets :
+        A Targets object with values derived from Landfire and SB40 fuel models
+    """
+    return query.get_targets(fuel_type, parameter, method)
 
 
 def set_fuel_parameter(parameter: str, **kwargs: Targets):
@@ -734,14 +850,14 @@ def _density_weighted_average(moisture: np.ndarray, density: np.ndarray) -> np.n
 
 
 def _query_landfire(
-    poly: geojson.Polygon,
+    poly: shapely.Polygon,
     directory: Path,
 ) -> None:
     """
     Download a grid of SB40 fuel models from Landfire for the unit and convert to a numpy array
     """
 
-    bbox = get_bbox_from_polygon(aoi_polygon=poly, crs=5070)
+    bbox = get_bbox_from_polygon(aoi_polygon=poly, crs=4326)
 
     # Download Landfire data to output directory
     lf = landfire.Landfire(bbox, output_crs="5070")
@@ -761,56 +877,13 @@ def _query_landfire(
 
 
 def _landfire_to_array(
-    poly: geojson.Polygon, directory: Path, duet_res: int = 2
+    directory: Path,
 ) -> np.ndarray:
     # Upsample landfire raster to the quicfire resolution
     with rio.open(Path(directory, "landfire_sb40.tif")) as sb:
-        upscale_factor = 30 / duet_res  # lf res/qf res
-        profile = sb.profile.copy()
-        # resample data to target shape
-        data = sb.read(
-            out_shape=(
-                sb.count,
-                int(sb.height * upscale_factor),
-                int(sb.width * upscale_factor),
-            ),
-            resampling=Resampling.nearest,
-        )
+        arr = sb.read(1)
 
-        # scale image transform
-        transform = sb.transform * sb.transform.scale(
-            (sb.width / data.shape[-1]), (sb.height / data.shape[-2])
-        )
-        profile.update(
-            {
-                "height": data.shape[-2],
-                "width": data.shape[-1],
-                "transform": transform,
-            }
-        )
-        with rio.open(Path(directory, "sb40_upsampled.tif"), "w", **profile) as dataset:
-            dataset.write(data)
-
-    # Crop the upsampled raster to the unit bounds
-    with rio.open(Path(directory, "sb40_upsampled.tif"), "r+") as rst:
-        out_image, out_transform = mask(rst, [poly], crop=True)
-        out_meta = rst.meta
-        out_meta.update(
-            {
-                "driver": "GTiff",
-                "height": out_image.shape[1],
-                "width": out_image.shape[2],
-                "transform": out_transform,
-            }
-        )
-        with rio.open(Path(directory, "sb40_cropped.tif"), "w", **out_meta) as cropped:
-            cropped.write(out_image)
-
-    # Read in the cropped raster as a numpy array
-    with rio.open(Path(directory, "sb40_cropped.tif")) as rst:
-        arr = rst.read(1)
-
-    return arr[arr > 0]
+    return arr
 
 
 def _get_sb40_fuel_params(params: pd.DataFrame) -> dict:
@@ -927,7 +1000,7 @@ def _get_sb40_arrays(sb40_keys: np.ndarray, sb40_dict: dict) -> np.ndarray:
         4. fuel height values as caluclated by fastfuels
     """
     val_idx = [5, 1, 3, 4]
-    fuel_arr = np.zeros((4, sb40_keys.shape[1], sb40_keys.shape[0]))
+    fuel_arr = np.zeros((4, sb40_keys.shape[0], sb40_keys.shape[1]))
     for i in range(len(val_idx)):
         layer_dict = {key: val[val_idx[i]] for key, val in sb40_dict.items()}
         layer = np.vectorize(layer_dict.get)(sb40_keys)
@@ -936,11 +1009,13 @@ def _get_sb40_arrays(sb40_keys: np.ndarray, sb40_dict: dict) -> np.ndarray:
     return fuel_arr
 
 
-def _reproject_geojson(poly: geojson.Polygon, input_epsg: int, target_epsg: int = 5070):
+def _reproject_polygon(poly: shapely.Polygon, input_epsg: int, target_epsg: int):
+    coords = list(poly.exterior.coords)
     transformer = Transformer.from_crs(input_epsg, target_epsg, always_xy=True)
-    projected_polygon = list(transform(transformer.transform, [poly].coordinates[0]))
+    transformed_coords = transformer.transform(*zip(*coords))
+    transformed_poly = shapely.Polygon(list(zip(*transformed_coords)))
 
-    return geojson.Polygon([projected_polygon])
+    return transformed_poly
 
 
 def _delete_intermediate_files(directory: Path):
