@@ -1,10 +1,14 @@
 TODO:
 
-[x] Change depth to height
-[x] For constant calibration change name of arg from target to value
-[] Decide if there should be one function or separate functions for setting fuel parameter targets
-
 [] Incorporate landfire queries:
+
+Wrokflow brainstorm
+    duet_run = import_duet(directory, nx ny)
+    grass_density_sb40_targets = assign_targets_from_sb40(query = LandfireQuery, fuel_type = "grass", parameter = "density", method="maxmin")
+    grass_density_sb40 = set_fuel_parameter(parameter = "density", grass = grass_density_sb40_targets)
+    calibrate(duet_run, [grass_density_sb40, grass_moisture_constant])
+
+
 # import geojson
 # import landfire
 # from landfire.geospatial import get_bbox_from_polygon

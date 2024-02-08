@@ -10,6 +10,8 @@ from duet_tools.calibration import (
     set_height,
     set_fuel_parameter,
     calibrate,
+    query_landfire,
+    assign_targets_from_sb40,
 )
 
 from duet_tools.utils import (
@@ -29,6 +31,8 @@ __all__ = [
     "set_height",
     "set_fuel_parameter",
     "calibrate",
+    "query_landfire",
+    "assign_targets_from_sb40",
     "write_array_to_dat",
     "read_dat_to_array",
 ]
