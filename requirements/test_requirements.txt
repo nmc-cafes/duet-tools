@@ -9,3 +9,4 @@ rasterio
 scipy
 matplotlib
 fiona
+geopandas
