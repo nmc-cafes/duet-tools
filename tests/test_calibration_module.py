@@ -28,6 +28,7 @@ from duet_tools.calibration import (
 )
 
 from duet_tools.utils import read_dat_to_array
+from duet_tools.landfire import query_landfire
 
 TEST_DIR = Path(__file__).parent
 TMP_DIR = TEST_DIR / "tmp"
