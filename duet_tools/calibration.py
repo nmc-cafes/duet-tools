@@ -12,8 +12,8 @@ import warnings
 import numpy as np
 
 # Internal Imports
-from duet_tools.utils import read_dat_to_array, write_array_to_dat
-from duet_tools.landfire import LandfireQuery
+from duet_tools import read_dat_to_array, write_array_to_dat
+from duet_tools import LandfireQuery
 
 
 class DuetRun:
