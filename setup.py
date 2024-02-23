@@ -60,5 +60,5 @@ setup(
     install_requires=[
         "numpy<2",
     ],
-    python_requires="3.10",
+    python_requires="~=3.10",
 )
