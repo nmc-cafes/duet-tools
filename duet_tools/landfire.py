@@ -6,13 +6,13 @@ Functions for interfacing with the LandFire API and processing the outputs
 from pathlib import Path
 import importlib.resources
 import re
+import zipfile
 
 # External imports
 import numpy as np
 import pandas as pd
 import geojson
 import shapely
-import zipfile
 from pyproj import Transformer
 import landfire
 from landfire.geospatial import get_bbox_from_polygon
