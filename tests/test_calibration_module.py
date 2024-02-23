@@ -38,7 +38,7 @@ DATA_DIR = TEST_DIR / "test-data"
 
 class TestDuetRun:
     def test_import_duet(self):
-        duet_run = import_duet(directory=TMP_DIR, nx=252, ny=252)
+        duet_run = import_duet(directory=DATA_DIR, nx=252, ny=252)
         # test that data types are correct
         assert isinstance(duet_run, DuetRun)
         assert isinstance(duet_run.density, np.ndarray)
@@ -49,10 +49,10 @@ class TestDuetRun:
         assert duet_run.height.shape == (2, 252, 252)
         # test that wrong dimensions raise error
         with pytest.raises(ValueError):
-            duet_run = import_duet(directory=TMP_DIR, nx=252, ny=252, nz=3)
+            duet_run = import_duet(directory=DATA_DIR, nx=252, ny=252, nz=3)
 
     def test_add_moisture(self):
-        duet_run = import_duet(directory=TMP_DIR, nx=252, ny=252)
+        duet_run = import_duet(directory=DATA_DIR, nx=252, ny=252)
         grass_moist = np.full((252, 252), 0.4)
         litter_moist = np.full((252, 252), 0.1)
         array_to_add = np.array([grass_moist, litter_moist])
@@ -61,15 +61,15 @@ class TestDuetRun:
         assert duet_run.moisture.shape == (2, 252, 252)
         # test zero fuel moistue where fuels are present raises error
         with pytest.raises(ValueError):
-            duet_run = import_duet(directory=TMP_DIR, nx=252, ny=252)
+            duet_run = import_duet(directory=DATA_DIR, nx=252, ny=252)
             duet_run.add_moisture_array(np.array([np.zeros((252, 252)), litter_moist]))
         # test wrong dimensions
         with pytest.raises(ValueError):
-            duet_run = import_duet(directory=TMP_DIR, nx=252, ny=252)
+            duet_run = import_duet(directory=DATA_DIR, nx=252, ny=252)
             duet_run.add_moisture_array(grass_moist)
 
     def test_to_numpy(self):
-        duet_run = import_duet(directory=TMP_DIR, nx=252, ny=252)
+        duet_run = import_duet(directory=DATA_DIR, nx=252, ny=252)
         grass_moist = np.full((252, 252), 0.4)
         litter_moist = np.full((252, 252), 0.1)
         array_to_add = np.array([grass_moist, litter_moist])
@@ -103,7 +103,7 @@ class TestDuetRun:
         assert np.array_equal(integrated_moisture, weighted_average_moisture)
 
     def test_to_quicfire(self):
-        duet_run = import_duet(directory=TMP_DIR, nx=252, ny=252)
+        duet_run = import_duet(directory=DATA_DIR, nx=252, ny=252)
         duet_run.to_quicfire(TMP_DIR)
         treesrhof = read_dat_to_array(TMP_DIR, "treesrhof.dat", 252, 252, 1, order="C")
         treesrhof = treesrhof[0, :, :]
@@ -199,7 +199,7 @@ class TestSetFuelParameter:
 class TestCalibrate:
     def test_calibrate_maxmin(self):
         # try 1 fueltype and 1 parameter
-        duet_run = import_duet(TMP_DIR, 252, 252)
+        duet_run = import_duet(DATA_DIR, 252, 252)
         grass_density = assign_targets(method="maxmin", max=1.0, min=0.2)
         density_targets = set_fuel_parameter(parameter="density", grass=grass_density)
         calibrated_duet = calibrate(duet_run, fuel_parameter_targets=density_targets)
@@ -244,7 +244,7 @@ class TestCalibrate:
 
     def test_calibrate_meansd(self):
         # try 1 fueltype and 1 parameter
-        duet_run = import_duet(TMP_DIR, 252, 252)
+        duet_run = import_duet(DATA_DIR, 252, 252)
         grass_density = assign_targets(method="meansd", mean=0.6, sd=0.3)
         density_targets = set_fuel_parameter(parameter="density", grass=grass_density)
         calibrated_duet = calibrate(duet_run, fuel_parameter_targets=density_targets)
@@ -281,7 +281,7 @@ class TestCalibrate:
         assert np.allclose(calibrated_duet.density, duet_run.density) == False
 
     def test_constant_calibration(self):
-        duet_run = import_duet(TMP_DIR, 252, 252)
+        duet_run = import_duet(DATA_DIR, 252, 252)
         grass_height = assign_targets(method="constant", value=0.5)
         litter_height = assign_targets(method="constant", value=0.05)
         height_targets = set_fuel_parameter(
@@ -305,7 +305,7 @@ class TestCalibrate:
         )
 
     def test_fueltype_all(self):
-        duet_run = import_duet(TMP_DIR, 252, 252)
+        duet_run = import_duet(DATA_DIR, 252, 252)
         density = assign_targets(method="maxmin", max=2.0, min=0.5)
         grass_height = assign_targets(method="constant", value=0.75)
         litter_height = assign_targets(method="constant", value=0.15)
