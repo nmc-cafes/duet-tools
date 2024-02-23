@@ -6,20 +6,17 @@ Functions for interfacing with the LandFire API and processing the outputs
 from pathlib import Path
 import importlib.resources
 import re
+import zipfile
 
 # External imports
 import numpy as np
 import pandas as pd
 import geojson
 import shapely
-import zipfile
 from pyproj import Transformer
 import landfire
 from landfire.geospatial import get_bbox_from_polygon
 import rasterio as rio
-
-# Internal imports
-from duet_tools.calibration import Targets
 
 try:  # Python 3.9+
     DATA_PATH = importlib.resources.files("duet_tools").joinpath("data")
@@ -46,56 +43,6 @@ class LandfireQuery:
         self.moisture = moisture
         self.height = height
         self._validate_arrays_shape()
-
-    def get_targets(self, fuel_type: str, parameter: str, method: str):
-        self._validate_get_targets(fuel_type, parameter, method)
-        # select fuel parameter
-        if parameter == "density":
-            param_arr = self.density
-        elif parameter == "moisture":
-            param_arr = self.moisture
-        else:
-            param_arr = self.height
-        # select fuel type
-        if fuel_type == "grass":
-            fuel_arr = param_arr[self._get_fueltype_indices(self.fuel_types, 1)]
-        elif fuel_type == "litter":
-            fuel_arr = param_arr[self._get_fueltype_indices(self.fuel_types, -1)]
-        else:
-            fuel_arr = param_arr
-        # get targets based on method
-        fuel_arr = fuel_arr[np.where(fuel_arr > 0)]
-        if method == "maxmin":
-            if np.max(fuel_arr) == np.min(fuel_arr):
-                raise ValueError(
-                    f"There is only one value for {fuel_type} {parameter}. "
-                    "Please use 'constant' calibration method"
-                )
-            return Targets(
-                method="maxmin",
-                args=["max", "min"],
-                targets=[np.max(fuel_arr), np.min(fuel_arr)],
-            )
-        if method == "meansd":
-            if np.max(fuel_arr) == np.min(fuel_arr):
-                raise ValueError(
-                    f"There is only one value for {fuel_type} {parameter}. "
-                    "Please use 'constant' calibration method"
-                )
-            return Targets(
-                method="meansd",
-                args=["mean", "sd"],
-                targets=[np.mean(fuel_arr), np.std(fuel_arr)],
-            )
-        if method == "constant":
-            if np.max(fuel_arr) != np.min(fuel_arr):
-                raise ValueError(
-                    "Multiple values present in Landfire query. Please use either maxmin "
-                    "or meansd calibration method."
-                )
-            return Targets(
-                method="constant", args=["value"], targets=[np.mean(fuel_arr)]
-            )
 
     def _get_fueltype_indices(self, arr: np.ndarray, ft: int):
         ft_dict = {1: "grass", -1: "litter"}

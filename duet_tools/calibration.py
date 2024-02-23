@@ -310,7 +310,52 @@ def assign_targets_from_sb40(
     Targets :
         A Targets object with values derived from Landfire and SB40 fuel models
     """
-    return query.get_targets(fuel_type, parameter, method)
+    query._validate_get_targets(fuel_type, parameter, method)
+    # select fuel parameter
+    if parameter == "density":
+        param_arr = query.density
+    elif parameter == "moisture":
+        param_arr = query.moisture
+    else:
+        param_arr = query.height
+    # select fuel type
+    if fuel_type == "grass":
+        fuel_arr = param_arr[query._get_fueltype_indices(query.fuel_types, 1)]
+    elif fuel_type == "litter":
+        fuel_arr = param_arr[query._get_fueltype_indices(query.fuel_types, -1)]
+    else:
+        fuel_arr = param_arr
+    # get targets based on method
+    fuel_arr = fuel_arr[np.where(fuel_arr > 0)]
+    if method == "maxmin":
+        if np.max(fuel_arr) == np.min(fuel_arr):
+            raise ValueError(
+                f"There is only one value for {fuel_type} {parameter}. "
+                "Please use 'constant' calibration method"
+            )
+        return Targets(
+            method="maxmin",
+            args=["max", "min"],
+            targets=[np.max(fuel_arr), np.min(fuel_arr)],
+        )
+    if method == "meansd":
+        if np.max(fuel_arr) == np.min(fuel_arr):
+            raise ValueError(
+                f"There is only one value for {fuel_type} {parameter}. "
+                "Please use 'constant' calibration method"
+            )
+        return Targets(
+            method="meansd",
+            args=["mean", "sd"],
+            targets=[np.mean(fuel_arr), np.std(fuel_arr)],
+        )
+    if method == "constant":
+        if np.max(fuel_arr) != np.min(fuel_arr):
+            raise ValueError(
+                "Multiple values present in Landfire query. Please use either maxmin "
+                "or meansd calibration method."
+            )
+        return Targets(method="constant", args=["value"], targets=[np.mean(fuel_arr)])
 
 
 def set_fuel_parameter(parameter: str, **kwargs: Targets):
