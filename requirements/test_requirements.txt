@@ -7,3 +7,4 @@ pyproj
 landfire
 rasterio
 scipy
+matplotlib
