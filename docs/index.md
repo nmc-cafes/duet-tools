@@ -11,7 +11,6 @@ The goals of duet-tools are to:
 3. Provide a plotform for the future development of additional tools centered around DUET.
 
 
-
 ## Installation
 
 duet-tools can be installed using `pip`.
