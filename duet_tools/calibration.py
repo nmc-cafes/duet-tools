@@ -369,15 +369,16 @@ def set_fuel_parameter(parameter: str, **kwargs: Targets):
     ----------
     parameter : str
         Fuel parameter for which to set targets
-    grass : Targets | None
-        Grass calibration targets. Only the grass layer of the DUET bulk
-        density array will be calibrated.
-    litter : Targets | None
-        Litter calibration targets. Only the litter layer of the DUET bulk
-        density array will be calibrated.
-    all : Targets | None
-        Calibration targets for all (both) fuel types. Both layers of the
-        DUET bulk density array will be calibrated together.
+    **kwargs : Targets
+        grass : Targets
+            Grass calibration targets. Only the grass layer of the DUET bulk
+            density array will be calibrated.
+        litter : Targets
+            Litter calibration targets. Only the litter layer of the DUET bulk
+            density array will be calibrated.
+        all : Targets
+            Calibration targets for all (both) fuel types. Both layers of the
+            DUET bulk density array will be calibrated together.
 
     Returns
     -------
