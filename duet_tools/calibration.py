@@ -153,7 +153,7 @@ class Targets:
     Class containing and validating target methods and values for fuel parameters.
     """
 
-    def __init__(self, method: str, args: list(str), targets: list):
+    def __init__(self, method: str, args: list[str], targets: list):
         self.method = self._validate_method(method)
         self.args, self.targets = self._validate_target_args(method, args, targets)
         self.calibration_function = self._get_calibration_function(method)
@@ -174,7 +174,7 @@ class Targets:
             )
         return method
 
-    def _validate_target_args(self, method: str, args: list(str), targets: list(float)):
+    def _validate_target_args(self, method: str, args: list[str], targets: list[float]):
         method_dict = {
             "constant": ["value"],
             "maxmin": ["max", "min"],
@@ -203,7 +203,7 @@ class FuelParameter:
     be set for multiple fuel types.
     """
 
-    def __init__(self, parameter: str, fuel_types: list(str), targets: list(Targets)):
+    def __init__(self, parameter: str, fuel_types: list[str], targets: list[Targets]):
         self.parameter = self._validate_fuel_parameter(parameter)
         self.fuel_types = self._validate_fuel_types(fuel_types)
         self.targets = targets
@@ -477,7 +477,7 @@ def set_height(**kwargs: Targets):
 
 
 def calibrate(
-    duet_run: DuetRun, fuel_parameter_targets: list(FuelParameter) | FuelParameter
+    duet_run: DuetRun, fuel_parameter_targets: list[FuelParameter] | FuelParameter
 ) -> DuetRun:
     """
     Calibrates the arrays in a DuetRun object using the provided targets and methods for one
