@@ -270,9 +270,11 @@ def assign_targets(method: str, **kwargs: float) -> Targets:
     method : str
         Calibration method for the target values provided. Must be one of:
         "constant", "maxmin", "meansd", "sb40".
-    **kwargs : str
+    **kwargs : float
         Keyword arguments correspond to the calibration method.
-        #TODO: kwargs in docstring
+        For "maxmin" method, **kwargs keys must be `max` and `min`.
+        For "meansd" method, **kwargs keys must be `mean` and `sd`.
+        For "constant" method, **kwargs key must be `value`.
 
     Returns
     -------
@@ -537,12 +539,33 @@ def get_unit_from_shapefile(directory: str | Path):
 
 
 def write_numpy_to_quicfire(array: np.ndarray, directory: str | Path, filename: str):
+    """
+    Writes a numpy array to a QUIC-Fire fuel input (.dat) in the chosen directory.
+
+    Parameters
+    ----------
+    array : np.ndarray
+        The numpy array to be written. Must be 3D.
+    directory : str | Path
+        The directory where the file will be written.
+    filename : str
+        The name of the file to be written. Must end in ".dat".
+
+    Returns
+    -------
+    None
+        File is written to disk.
+    """
     if isinstance(directory, str):
         directory = Path(directory)
     write_array_to_dat(array=array, dat_name=filename, output_dir=directory)
 
 
 def _get_array_to_calibrate(duet_run: DuetRun, fueltype: str, fuelparam: str):
+    """
+    Identifies and returns the layer of the duet outputs should be processed based
+    on the fuel parameter and fuel type.
+    """
     if fuelparam == "density":
         if fueltype == "grass":
             return duet_run.density[0, :, :].copy()
@@ -571,6 +594,9 @@ def _get_array_to_calibrate(duet_run: DuetRun, fueltype: str, fuelparam: str):
 
 
 def _duplicate_duet_run(duet_run: DuetRun) -> DuetRun:
+    """
+    Makes a copy of a DuetRun object.
+    """
     new_density = duet_run.density.copy() if duet_run.density is not None else None
     new_moisture = duet_run.moisture.copy() if duet_run.moisture is not None else None
     new_height = duet_run.height.copy() if duet_run.height is not None else None
@@ -585,6 +611,9 @@ def _duplicate_duet_run(duet_run: DuetRun) -> DuetRun:
 
 
 def _do_calibration(array: np.ndarray, target_obj: Targets):
+    """
+    Calibrates an array based on the method and values in a Targets object.
+    """
     kwarg_dict = {}
     for i in range(len(target_obj.args)):
         kwarg_dict[target_obj.args[i]] = target_obj.targets[i]
@@ -636,6 +665,10 @@ def _meansd_calibration(x: np.ndarray, **kwargs: float) -> np.ndarray:
 
 # TODO: add option for fuel vs cell bulk density?
 def _constant_calibration(x: np.ndarray, **kwargs: float) -> np.ndarray:
+    """
+    Conducts constant calibration by changing all nonzero values in a
+    duet fuel parameter/type to a single given value.
+    """
     value = kwargs["value"]
     arr = x.copy()
     arr[arr > 0] = value
@@ -648,6 +681,9 @@ def _add_calibrated_array(
     fueltype: str,
     fuelparam: str,
 ) -> DuetRun:
+    """
+    Replaces or creates calibrated array(s) in a DuetRun object.
+    """
     for param in ["density", "moisture", "height"]:
         if fuelparam == param:
             if fueltype == "grass":
@@ -664,6 +700,10 @@ def _add_calibrated_array(
 def _separate_2d_array(
     calibrated: np.ndarray, param: str, duet_run: DuetRun
 ) -> np.ndarray:
+    """
+    Separates a combined array into its component fuel types based on the
+    fuel parameter.
+    """
     separated = np.array([calibrated, calibrated])
     if param == "density":
         weights = duet_run.density.copy()
