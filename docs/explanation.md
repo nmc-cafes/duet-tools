@@ -65,3 +65,6 @@ The [`Landfire`](reference.md#duet_tools.landfire) module is an auxiliary module
 
 Values for fuel bulk density, fuel moisture, and surface fuel height are derived from Scott and Burgan 40 Fuel Model designations, using methods developed for FastFuels (citation). These data are available at a 30x30m resolution for the contiguous United States. 
 
+When a fuel type is selected (*i.e.* grass or litter), fuel parameter values are derived from only SB40 Fuel Models that are predominantly comprised of that fuel type. Because DUET does not have a designation for shrub fuels, any SB40 Fuel Model with major shrub components are categorized as grass, since their growth patterns will also follow light availability.
+
+If a user attempts to assign targets from a fuel type that is not present in the area of interest, an error will be given. If there is a single parameter value for a given fuel type in the area of interest, targets will automatically be given the "constant" calibration method, and a warning will be issued. Using the "meansd" calibration method is generally discouraged, since values derived from SB40 most often do not follow a normal distribution. 
