@@ -286,7 +286,7 @@ def assign_targets(method: str, **kwargs: float) -> Targets:
 
 def assign_targets_from_sb40(
     query: LandfireQuery, fuel_type: str, parameter: str, method: str = "maxmin"
-):
+) -> Targets:
     """
     Assign a calibration target and method for a given fuel type and parameter.
 
@@ -329,25 +329,41 @@ def assign_targets_from_sb40(
     fuel_arr = fuel_arr[np.where(fuel_arr > 0)]
     if method == "maxmin":
         if np.max(fuel_arr) == np.min(fuel_arr):
-            raise ValueError(
+            warnings.warn(
                 f"There is only one value for {fuel_type} {parameter}. "
-                "Please use 'constant' calibration method"
+                "Setting calibration method to 'constant'",
+                UserWarning,
             )
+            method = "constant"
+            args = ["value"]
+            targets = [np.mean(fuel_arr)]
+        else:
+            method = "maxmin"
+            args = ["max", "min"]
+            targets = [np.max(fuel_arr), np.min(fuel_arr)]
         return Targets(
-            method="maxmin",
-            args=["max", "min"],
-            targets=[np.max(fuel_arr), np.min(fuel_arr)],
+            method=method,
+            args=args,
+            targets=targets,
         )
     if method == "meansd":
         if np.max(fuel_arr) == np.min(fuel_arr):
-            raise ValueError(
+            warnings.warn(
                 f"There is only one value for {fuel_type} {parameter}. "
-                "Please use 'constant' calibration method"
+                "Setting calibration method to 'constant'",
+                UserWarning,
             )
+            method = "constant"
+            args = ["value"]
+            targets = [np.mean(fuel_arr)]
+        else:
+            method = "meansd"
+            args = ["mean", "sd"]
+            targets = [np.mean(fuel_arr), np.std(fuel_arr)]
         return Targets(
-            method="meansd",
-            args=["mean", "sd"],
-            targets=[np.mean(fuel_arr), np.std(fuel_arr)],
+            method=method,
+            args=args,
+            targets=targets,
         )
     if method == "constant":
         if np.max(fuel_arr) != np.min(fuel_arr):

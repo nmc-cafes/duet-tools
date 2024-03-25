@@ -369,7 +369,7 @@ class TestLandfireTargets:
         assert grass_density.args == ["max", "min"]
         assert len(grass_density.targets) == 2
         # test fuel and parameter with only one value
-        with pytest.raises(ValueError):
+        with pytest.warns(UserWarning):
             grass_moisture = assign_targets_from_sb40(query, "grass", "moisture")
         grass_moisture = assign_targets_from_sb40(
             query, "grass", "moisture", method="constant"
