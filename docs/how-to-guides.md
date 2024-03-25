@@ -17,6 +17,9 @@ duet_path = "path/to/duet/files"
 duet_run = import_duet(directory=duet_path,nx=200,ny=200)
 ```
 
+- **nx** and **ny** define the number of cells in the x and y direction of the DUET grid.
+- **directory** is the path to the DUET output files
+
 ### How to calibrate DUET outputs to target ranges and/or distributions
 
 A target range for each fuel parameter can be defined using method="maxmin". If instead you want to define a target distribution of values, use method="meansd".
@@ -25,32 +28,44 @@ First, make [`Targets`](reference.md#duet_tools.calibration.Targets) objects for
 ```python
 from duet_tools.calibrattion import assign_targets, set_fuel_parameter, calibrate
 
-# Assign targets
 grass_density = assign_targets(method="maxmin", max=1.0, min=0.1)
 litter_density = assign_targets(method="meansd", mean=0.6, sd=0.1)
 grass_height = assign_targets(method="constant", value=0.75)
 litter_height = assign_targets(method="constant", value=0.2)
+```
 
-# Set fuel parameters
+- **method** specifies how the calibration will be conducted. When using the `"maxmin"` method, a target range of values should be supplied using the keyword arguments **max** and **min**. To specify a target distribution, set the method to `"meansd"` and use the keyword arguments **mean** and **sd**. To assign the same value to everywhere a fuel type is present, use the `"constant"` calibration method with a keyword argument of **value**. 
+
+Once any number of `Targets` objects are created, they are used to set the targets of each desired fuel parameter.
+
+```python
 density_targets = set_fuel_parameter(
     parameter="density", grass=grass_density, litter=litter_density
 )
 height_targets = set_fuel_parameter(
     parameter="height", grass=grass_height, litter=litter_height
 )
+```
+- **parameter** can be one of `"density"`, `"height"`, or `"moisture"`. A `FuelParameter` object represents only one of thes parameters.
 
+- **keyword arguments** specify which fuel type(s) should be set for a given parameter. To set fuel types individually, use either or both of **grass** and **litter**. If you have targets that apply to all fuel types, rather than litter or grass separately, simply use the **all** keyword argument.
+
+```python
+all_density = assign_targets(method="maxmin", max= 1.0, min=0.1)
+density_targets = set_fuel_parameter(parameter="density", all=all_density)
+```
+
+Last, use the calibrate function to return a new `DuetRun` object with calibrated fuel arrays.
+
+```python
 # Calibrate
 calibrated_duet = calibrate(
     duet_run=duet_run, fuel_parameter_targets=[density_targets, grass_targets]
 )
 ```
 
-If you have targets that apply to all fuel types, rather than litter or grass separately, simply use the `all` keyword argument in `set_fuel_parameter`.
-
-```python
-all_density = assign_targets(method="maxmin", max= 1.0, min=0.1)
-density_targets = set_fuel_parameter(parameter="density", all=all_density)
-```
+- **duet_run** is the `DuetRun` object that will be calibrated.
+- **fuel_parameter_targets** is the `FuelParameter` object or list of `FuelParameter` objects that contain calibration targets.
 
 ### How to calibrate DUET using LANDFIRE data
 
