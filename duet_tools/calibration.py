@@ -331,7 +331,8 @@ def assign_targets_from_sb40(
         if np.max(fuel_arr) == np.min(fuel_arr):
             warnings.warn(
                 f"There is only one value for {fuel_type} {parameter}. "
-                "Setting calibration method to 'constant'"
+                "Setting calibration method to 'constant'",
+                UserWarning,
             )
             method = "constant"
             args = ["value"]
@@ -349,7 +350,8 @@ def assign_targets_from_sb40(
         if np.max(fuel_arr) == np.min(fuel_arr):
             warnings.warn(
                 f"There is only one value for {fuel_type} {parameter}. "
-                "Setting calibration method to 'constant'"
+                "Setting calibration method to 'constant'",
+                UserWarning,
             )
             method = "constant"
             args = ["value"]
