@@ -572,7 +572,7 @@ def _get_array_to_calibrate(duet_run: DuetRun, fueltype: str, fuelparam: str):
             return duet_run.height[1, :, :].copy()
         return np.max(duet_run.height, axis=0)
     if fuelparam == "moisture":
-        if duet_run.moisture:
+        if duet_run.moisture is not None:
             if fueltype == "grass":
                 return duet_run.moisture[0, :, :].copy()
             if fueltype == "litter":
