@@ -18,7 +18,7 @@ duet_run = import_duet(directory=duet_path,nx=200,ny=200)
 ```
 
 - **nx** and **ny** define the number of cells in the x and y direction of the DUET grid.
-- **directory** is the path to the DUET output files
+- **directory** is the path to the DUET output files.
 
 ### How to calibrate DUET outputs to target ranges and/or distributions
 
@@ -34,7 +34,7 @@ grass_height = assign_targets(method="constant", value=0.75)
 litter_height = assign_targets(method="constant", value=0.2)
 ```
 
-- **method** specifies how the calibration will be conducted. When using the `"maxmin"` method, a target range of values should be supplied using the keyword arguments **max** and **min**. To specify a target distribution, set the method to `"meansd"` and use the keyword arguments **mean** and **sd**. To assign the same value to everywhere a fuel type is present, use the `"constant"` calibration method with a keyword argument of **value**. 
+- **method** specifies how the calibration will be conducted. When using the `"maxmin"` method, a target range of values should be supplied using the keyword arguments **max** and **min**. To specify a target distribution, set the method to `"meansd"` and use the keyword arguments **mean** and **sd**. To assign the same value to everywhere a fuel type is present, use the `"constant"` calibration method with a keyword argument of **value**.
 
 Once any number of `Targets` objects are created, they are used to set the targets of each desired fuel parameter.
 
@@ -106,7 +106,7 @@ litter_density_sb40 = assign_targets_from_sb40(
 
 A `Targets` object is returned with values derived from the SB40 designations in the area of interest. An error will be issued if the given fuel type is not present in the area of interest.
 
-The default calibration method is "maxmin". If the fuel parameter has only a single value for the given fuel type, the chosen calibration method will be changed to "constant" (if not already) and a warning will be issued. If "meansd" is used, a warning will be issued, since specifying a distribution from SB40-derived values is discouraged. If the "constant" calibration method is specified and more than one value for the given fuel parameter and type is present, an error will be issued. 
+The default calibration method is "maxmin". If the fuel parameter has only a single value for the given fuel type, the chosen calibration method will be changed to "constant" (if not already) and a warning will be issued. If "meansd" is used, a warning will be issued, since specifying a distribution from SB40-derived values is discouraged. If the "constant" calibration method is specified and more than one value for the given fuel parameter and type is present, an error will be issued.
 
 Once a `Targets` object is obtained from `assing_targets_from_sb40` calibration proceeds in the normal way.
 
@@ -140,7 +140,7 @@ separated_density = calibrated_duet.to_numpy(
 
 ### How to export quicfire .dat files from calibrated DUET outputs
 
-The calibrated `DuetRun` object can also be exported as QUIC-Fire fuel input files to a specified directory. The resulting .dat files are 3D, with a single z-layer of integrated fuel types for each parameter. Naming follows the explected QUIC-Fire filenames of "treesrhof.dat", "treesmoist.dat", and/or "treesfueldepth.dat"
+The calibrated `DuetRun` object can also be exported as QUIC-Fire fuel input files to a specified directory. The resulting .dat files are 3D, with a single z-layer of integrated fuel types for each parameter. Naming follows the explected QUIC-Fire filenames of "treesrhof.dat", "treesmoist.dat", and/or "treesfueldepth.dat".
 
 ```python
 quicfire_path = "path/to/quicfire"

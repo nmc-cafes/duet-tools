@@ -27,9 +27,9 @@ Fuels are described in QUIC-Fire and FIRETEC using different *parameters* that a
 
 These parameters are described for two fuel *types* in DUET: tree leaf/needle litter, which is stochastically distributed near tree canopies, and grass, which is more likely to "grow" in more open areas between tree canopies. DUET outputs separate arrays for these fuel types for each fuel parameter.
 
-[`duet-tools`] can calibrate any combination of fuel type and parameter with methods and targets contained in a `Targets` class object. The `Targets` class is agnostic of both fuel type and fuel parameter, and can thus be assigned to any number of fuel types and parameters. The [`FuelParameter`](reference.md#duet_tools.calibration.FuelParameter) class represents a single fuel parameter (*e.g.* bulk density), storing and validating all assigned `Targets`. 
+[`duet-tools`] can calibrate any combination of fuel type and parameter with methods and targets contained in a `Targets` class object. The `Targets` class is agnostic of both fuel type and fuel parameter, and can thus be assigned to any number of fuel types and parameters. The [`FuelParameter`](reference.md#duet_tools.calibration.FuelParameter) class represents a single fuel parameter (*e.g.* bulk density), storing and validating all assigned `Targets`.
 
-A `FuelParameter` class instance is created using the [`set_fuel_parameter`](reference.md#duet_tools.calibration.set_fuel_parameter) function. The parameter to be calibrated is specified, and the `Targets` objects are supplied to whichever fuel type they are meant to calibrate. Grass and litter can be calibrated individually, separately by specifying them as separate arguments, or together by using the arguement *all* (they can optionally be separated back into their component fuel types after calibration). 
+A `FuelParameter` class instance is created using the [`set_fuel_parameter`](reference.md#duet_tools.calibration.set_fuel_parameter) function. The parameter to be calibrated is specified, and the `Targets` objects are supplied to whichever fuel type they are meant to calibrate. Grass and litter can be calibrated individually, separately by specifying them as separate arguments, or together by using the arguement *all* (they can optionally be separated back into their component fuel types after calibration).
 
 ### Calibration
 
@@ -41,7 +41,7 @@ Because a `Targets` object can be assigned to any fuel parameter and type, the u
 
 In many situations, fuels data for specific burn units may not be available. LANDFIRE is a national dataset that includes 30m-resoltuion Scott and Burgan 40 Fuel Model (SB40) designations. From these data, values for fuel bulk density, moisture, and height can be derived. The `calibration` module offers a method of querying SB40 LANDFIRE data for a specific burn unit and assigning calibration targets based on those designations.
 
-To use LANDFIRE data, the user must use the [`landfire`](reference.md#duet_tools.landfire) module to query LANDFIRE data (see below). Once data has been queried, the resulting [`LandfireQuery`](reference.md#duet_tools.landfire.LandfireQuery) object is passed to the [`assign_targets_from_sb40`](reference.md#duet_tools.calibration.assign_targets_from_sb40) function. Because LANDFIRE data most often does not follow a normal distribution, the calibration method defaults to "maxmin", and "meansd" is not recommended. Unlike `assign_targets`, which does not specify fuel parameter or type, both must be specified in `assign_targets_from_sb40`. However, the resulting `Targets` object is treated like any other, and must be assigned to the correct fuel parameter and type(s) in `set_fuel_parameter`. 
+To use LANDFIRE data, the user must use the [`landfire`](reference.md#duet_tools.landfire) module to query LANDFIRE data (see below). Once data has been queried, the resulting [`LandfireQuery`](reference.md#duet_tools.landfire.LandfireQuery) object is passed to the [`assign_targets_from_sb40`](reference.md#duet_tools.calibration.assign_targets_from_sb40) function. Because LANDFIRE data most often does not follow a normal distribution, the calibration method defaults to "maxmin", and "meansd" is not recommended. Unlike `assign_targets`, which does not specify fuel parameter or type, both must be specified in `assign_targets_from_sb40`. However, the resulting `Targets` object is treated like any other, and must be assigned to the correct fuel parameter and type(s) in `set_fuel_parameter`.
 
 ### DuetRun Class
 
@@ -55,7 +55,7 @@ Since moisture is not output by DUET, the `DuetRun` class will always have the `
 
 The `calibrate` function returns a new instance of the `DuetRun` class containing calibrated arrays. These arrays can then be exported in a few ways using methods from the `DuetRun` class.
 
-The [`to_numpy`](reference.md#duet_tools.calibration.DuetRun.to_numpy)method  returns a numpy array of a specifed fuel parameter and type. Arrays can be returned as an *integrated* 2D array, where the fuel types are combined for a given parameter, or a *separated* 3D array, where the fuel types occupy different z-layers (axis 0). 
+The [`to_numpy`](reference.md#duet_tools.calibration.DuetRun.to_numpy)method  returns a numpy array of a specifed fuel parameter and type. Arrays can be returned as an *integrated* 2D array, where the fuel types are combined for a given parameter, or a *separated* 3D array, where the fuel types occupy different z-layers (axis 0).
 
 The [`to_quicfire`](reference.md#duet_tools.calibration.DuetRun.to_quicfire) method writes Fortran files (.dat) to be used in QUIC-Fire. Fuel types are integrated for each fuel parameter, and exported as a 3D array with 1 z-layer. The filenames are set to match QUIC-Fire's expected file naming system.
 
@@ -67,4 +67,4 @@ Values for fuel bulk density, fuel moisture, and surface fuel height are derived
 
 When a fuel type is selected (*i.e.* grass or litter), fuel parameter values are derived from only SB40 Fuel Models that are predominantly comprised of that fuel type. Because DUET does not have a designation for shrub fuels, any SB40 Fuel Model with major shrub components are categorized as grass, since their growth patterns will also follow light availability.
 
-If a user attempts to assign targets from a fuel type that is not present in the area of interest, an error will be given. If there is a single parameter value for a given fuel type in the area of interest, targets will automatically be given the "constant" calibration method, and a warning will be issued. Using the "meansd" calibration method is generally discouraged, since values derived from SB40 most often do not follow a normal distribution. 
+If a user attempts to assign targets from a fuel type that is not present in the area of interest, an error will be given. If there is a single parameter value for a given fuel type in the area of interest, targets will automatically be given the "constant" calibration method, and a warning will be issued. Using the "meansd" calibration method is generally discouraged, since values derived from SB40 most often do not follow a normal distribution.
