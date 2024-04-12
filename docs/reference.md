@@ -2,6 +2,6 @@
 
 ::: duet_tools.landfire
 
-::: quicfire_tools.utils
+::: duet_tools.utils
 
-::: quicfire_tools.example
+::: duet_tools.example
