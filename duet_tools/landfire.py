@@ -271,6 +271,7 @@ def _get_sb40_fuel_params(params: pd.DataFrame) -> dict:
             row["fuel_bed_depth_m"].values[0],
             row["duet_fuel_type"].values[0],
         ]
+    sb40_dict[-9999] = ["NA", 0.0, 0.0, 0.0, 0.0, 0]
 
     return sb40_dict
 
