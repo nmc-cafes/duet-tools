@@ -63,7 +63,7 @@ The [`to_quicfire`](reference.md#duet_tools.calibration.DuetRun.to_quicfire) met
 
 The [`Landfire`](reference.md#duet_tools.landfire) module is an auxiliary module handling the interfacing and processing of LANDFIRE data. Data is queried using the [`query_landfire`](reference.md#duet_tools.landfire.query_landfire) function by providing spatial data and information for the area of interest. An instance of class [`LandfireQuery`](reference.md#duet_tools.landfire.LandfireQuery) is returned, which can be provided to `assign_targets_from_sb40` in the `calibration` module.
 
-Values for fuel bulk density, fuel moisture, and surface fuel height are derived from Scott and Burgan 40 Fuel Model designations, using methods developed for FastFuels (citation). These data are available at a 30x30m resolution for the contiguous United States. 
+Values for fuel bulk density, fuel moisture, and surface fuel height are derived from Scott and Burgan 40 Fuel Model designations, using methods developed for FastFuels (citation). These data are available at a 30x30m resolution for the contiguous United States.
 
 When a fuel type is selected (*i.e.* grass or litter), fuel parameter values are derived from only SB40 Fuel Models that are predominantly comprised of that fuel type. Because DUET does not have a designation for shrub fuels, any SB40 Fuel Model with major shrub components are categorized as grass, since their growth patterns will also follow light availability.
 

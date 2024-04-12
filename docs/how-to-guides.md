@@ -82,15 +82,15 @@ landfire_path = "path/where/landfire/files/are/saved"
 with open(geojson_path) as fid:
     aoi_geojson = geojson.load(fid)
 landfire_query = query_landfire(
-    area_of_interest=aoi_geojson, 
-    directory=landfire_path, 
+    area_of_interest=aoi_geojson,
+    directory=landfire_path,
     input_epsg=4326
 )
 ```
 
 - **area_of_interest** may be given as either a geojson polygon or a shapely polygon. It is the spatial bounding box of the burn plot/area of interest.
 - **directory** is the path to the directory where landfire-associated files will be download, namely a .zip file that is read in and processed under the hood.
-- **input_epsg** is the EPSG code for the coordinate reference system and projects of the area of interest polygon. 
+- **input_epsg** is the EPSG code for the coordinate reference system and projects of the area of interest polygon.
 - **delete_files** specifies whether or not to delete to files downloaded from the LANDFIRE website. Since the files are usually not needed after the `LandfireQuery` object is returned, it defaults to True.
 
 Once LANDFIRE data is queried, targets can be assigned for whatever fuel parameters and types the user desires using [`assign_targets_from_sb40`](reference.md#duet_tools.calibration.assign_targets_from_sb40). Unlike `assign_targets`, the fuel parameter and fuel type must be specified for targets to be assigned.
