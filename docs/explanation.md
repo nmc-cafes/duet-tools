@@ -1,6 +1,6 @@
 ## Calibration Module
 
-The ['calibration`](reference.md#duet_tools.calibration) module in `duet-tools` is a central part of the package that allows the user to scale the numeric values in DUET output files to match user-supplied target values, without altering the spatial distributions calculated in DUET. Calibrated DUET files (and DUET files in general) are meant to be used by QUIC-Fire or FIRETEC fire behavior models, and export methods for those models are included.
+The [`calibration`](reference.md#duet_tools.calibration) module in `duet-tools` is a central part of the package that allows the user to scale the numeric values in DUET output files to match user-supplied target values, without altering the spatial distributions calculated in DUET. Calibrated DUET files (and DUET files in general) are meant to be used by QUIC-Fire or FIRETEC fire behavior models, and export methods for those models are included.
 
 ### Working with DUET
 
@@ -25,11 +25,11 @@ Specifying methods and target values in `assign_targets` creates an instance of 
 
 Fuels are described in QUIC-Fire and FIRETEC using different *parameters* that affect fire behavior. The main parameters are fuel *bulk density*, fuel *moisture*, and *height* of the surface fuels. DUET distributes bulk density and height, but does not output fuel moisture.
 
-These parameters are described for two fuel *types* in DUET: tree leaf/needle litter, which is stochastically distributed near tree canopies, and grass, which is more likely to "grow" in more open areas between tree canopies. DUET outputs separate arrays for these fuel types for each fuel parameter.
+These parameters are described for two *fuel types* in DUET: leaf/needle litter, which is stochastically distributed near tree canopies, and grass, which is more likely to "grow" in more open areas between tree canopies. DUET outputs separate arrays for these fuel types for each fuel parameter.
 
-[`duet-tools`] can calibrate any combination of fuel type and parameter with methods and targets contained in a `Targets` class object. The `Targets` class is agnostic of both fuel type and fuel parameter, and can thus be assigned to any number of fuel types and parameters. The [`FuelParameter`](reference.md#duet_tools.calibration.FuelParameter) class represents a single fuel parameter (*e.g.* bulk density), storing and validating all assigned `Targets`.
+`duet-tools` can calibrate any combination of fuel type and parameter with methods and targets contained in a `Targets` class object. The `Targets` class is agnostic of both fuel type and fuel parameter, and can thus be assigned to any number of fuel types and parameters. The [`FuelParameter`](reference.md#duet_tools.calibration.FuelParameter) class represents a single fuel parameter (*e.g.* bulk density), storing and validating all assigned `Targets`.
 
-A `FuelParameter` class instance is created using the [`set_fuel_parameter`](reference.md#duet_tools.calibration.set_fuel_parameter) function. The parameter to be calibrated is specified, and the `Targets` objects are supplied to whichever fuel type they are meant to calibrate. Grass and litter can be calibrated individually, separately by specifying them as separate arguments, or together by using the arguement *all* (they can optionally be separated back into their component fuel types after calibration).
+A `FuelParameter` class instance is created using the [`set_fuel_parameter`](reference.md#duet_tools.calibration.set_fuel_parameter) function. The parameter to be calibrated is specified, and the `Targets` objects are supplied to whichever fuel type they are meant to calibrate. Grass and litter can be calibrated individually, separately by specifying them as separate arguments, or together by using the argument *all* (they can optionally be separated back into their component fuel types after calibration).
 
 ### Calibration
 
