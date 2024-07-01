@@ -84,7 +84,9 @@ class TestDuetRun:
 
     def test_to_quicfire(self):
         duet_run = import_duet(directory=DATA_DIR, nx=252, ny=252)
-        duet_run.to_quicfire(TMP_DIR)
+        with pytest.raises(FileExistsError):
+            duet_run.to_quicfire(TMP_DIR)
+        duet_run.to_quicfire(TMP_DIR, overwrite=True)
         treesrhof = read_dat_to_array(TMP_DIR, "treesrhof.dat", 252, 252, 1, order="C")
         treesrhof = treesrhof[0, :, :]
         treesmoist = read_dat_to_array(
@@ -98,6 +100,15 @@ class TestDuetRun:
         assert np.array_equal(treesrhof, duet_run._integrate("density"))
         assert np.array_equal(treesfueldepth, duet_run._integrate("height"))
         assert np.array_equal(treesmoist, duet_run._integrate("moisture"))
+
+        files = ["treesrhof.dat", "treesmoist.dat", "treesfueldepth.dat"]
+        for file in files:
+            path = TMP_DIR / file
+            path.unlink()
+        duet_run.to_quicfire(TMP_DIR, density=False, moisture=False, height=False)
+        for file in files:
+            path = TMP_DIR / file
+            assert path.exists() == False
 
 
 class TestAssignTargets:
@@ -194,15 +205,12 @@ class TestCalibrate:
             calibrated_duet = calibrate(
                 duet_run, fuel_parameter_targets=[density_targets, height_targets]
             )
-        # now do moisture.. it will also raise an error since it doesn't exist in the og duet
+        # now do moisture
         grass_moisture = assign_targets(method="maxmin", max=0.5, min=0.05)
         moisture_targets = set_fuel_parameter(
             parameter="moisture", grass=grass_moisture
         )
-        with pytest.raises(ValueError):
-            calibrated_duet = calibrate(
-                duet_run, fuel_parameter_targets=moisture_targets
-            )
+        calibrated_duet = calibrate(duet_run, fuel_parameter_targets=moisture_targets)
 
         # try with two fueltypes
         litter_density = assign_targets(method="maxmin", max=0.1, min=0.01)
