@@ -146,3 +146,17 @@ The calibrated `DuetRun` object can also be exported as QUIC-Fire fuel input fil
 quicfire_path = "path/to/quicfire"
 calibrated_duet.to_quicfire(directory=quicfire_path)
 ```
+
+If a parameter array is not present in the `duet_run` object, it will not be written to a file. The user may also choose not to export any parameter by setting its argement to False.
+
+```python
+quicfire_path = "path/to/quicfire"
+calibrated_duet.to_quicfire(directory=quicfire_path, moisture=False)
+```
+
+If the directory already contains any of those three files, an error will be raised. To overwrite those files, set overwrite to True.
+
+```python
+quicfire_path = "path/to/quicfire"
+calibrated_duet.to_quicfire(directory=quicfire_path, moisture=False, overwrite=True)
+```
