@@ -42,38 +42,18 @@ class TestDuetRun:
         # test that data types are correct
         assert isinstance(duet_run, DuetRun)
         assert isinstance(duet_run.density, np.ndarray)
+        assert isinstance(duet_run.moisture, np.ndarray)
         assert isinstance(duet_run.height, np.ndarray)
-        assert duet_run.moisture is None
         # test array shapes
         assert duet_run.density.shape == (2, 252, 252)
+        assert duet_run.moisture.shape == (2, 252, 252)
         assert duet_run.height.shape == (2, 252, 252)
         # test that wrong dimensions raise error
         with pytest.raises(ValueError):
             duet_run = import_duet(directory=DATA_DIR, nx=252, ny=252, nz=3)
 
-    def test_add_moisture(self):
-        duet_run = import_duet(directory=DATA_DIR, nx=252, ny=252)
-        grass_moist = np.full((252, 252), 0.4)
-        litter_moist = np.full((252, 252), 0.1)
-        array_to_add = np.array([grass_moist, litter_moist])
-        duet_run.add_moisture_array(array_to_add)
-        assert isinstance(duet_run.moisture, np.ndarray)
-        assert duet_run.moisture.shape == (2, 252, 252)
-        # test zero fuel moistue where fuels are present raises error
-        with pytest.raises(ValueError):
-            duet_run = import_duet(directory=DATA_DIR, nx=252, ny=252)
-            duet_run.add_moisture_array(np.array([np.zeros((252, 252)), litter_moist]))
-        # test wrong dimensions
-        with pytest.raises(ValueError):
-            duet_run = import_duet(directory=DATA_DIR, nx=252, ny=252)
-            duet_run.add_moisture_array(grass_moist)
-
     def test_to_numpy(self):
         duet_run = import_duet(directory=DATA_DIR, nx=252, ny=252)
-        grass_moist = np.full((252, 252), 0.4)
-        litter_moist = np.full((252, 252), 0.1)
-        array_to_add = np.array([grass_moist, litter_moist])
-        duet_run.add_moisture_array(array_to_add)
         # test each fuel parameter and type
         grass_density = duet_run.to_numpy("grass", "density")
         litter_density = duet_run.to_numpy("litter", "density")
@@ -107,22 +87,17 @@ class TestDuetRun:
         duet_run.to_quicfire(TMP_DIR)
         treesrhof = read_dat_to_array(TMP_DIR, "treesrhof.dat", 252, 252, 1, order="C")
         treesrhof = treesrhof[0, :, :]
+        treesmoist = read_dat_to_array(
+            TMP_DIR, "treesmoist.dat", 252, 252, 1, order="C"
+        )
+        treesmoist = treesmoist[0, :, :]
         treesfueldepth = read_dat_to_array(
             TMP_DIR, "treesfueldepth.dat", 252, 252, 1, order="C"
         )
         treesfueldepth = treesfueldepth[0, :, :]
         assert np.array_equal(treesrhof, duet_run._integrate("density"))
         assert np.array_equal(treesfueldepth, duet_run._integrate("height"))
-        grass_moist = np.full((252, 252), 0.4)
-        litter_moist = np.full((252, 252), 0.1)
-        array_to_add = np.array([grass_moist, litter_moist])
-        duet_run.add_moisture_array(array_to_add)
-        duet_run.to_quicfire(TMP_DIR)
-        treesmoist = read_dat_to_array(
-            TMP_DIR, "treesmoist.dat", 252, 252, 1, order="C"
-        )
-        treesmoist = treesmoist[0, :, :]
-        assert np.allclose(treesmoist, duet_run._integrate("moisture"))
+        assert np.array_equal(treesmoist, duet_run._integrate("moisture"))
 
 
 class TestAssignTargets:
