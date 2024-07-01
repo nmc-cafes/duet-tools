@@ -2,13 +2,13 @@
 
 ## What is duet-tools?
 
-duet-tools is a Python package that provides a convenient interface for programmatically interfacing with the outputs of the DUET program (Los Alamos National Lab). Central to package is the ability to calibrate the values in DUET outputs to match targets supplied by the user or national datasets.
+duet-tools is a Python package that provides a convenient interface for programmatically working with the outputs of the DUET program developed by [McDanold et al. (2023)](https://doi.org/10.1016/j.ecolmodel.2023.110425) at Los Alamos National Lab. Central to the package is the ability to calibrate the values in DUET outputs to match targets supplied by the user or national datasets.
 
 The goals of duet-tools are to:
 
 1. Read in DUET outputs for easy manipulation.
 2. Calibrate DUET outputs by scaling the magnitude of the parameter values while retaining the spatial distributions from DUET.
-3. Provide a plotform for the future development of additional tools centered around DUET.
+3. Provide a platform for the future development of additional tools centered around DUET
 
 
 ## Installation
