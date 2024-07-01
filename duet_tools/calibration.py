@@ -39,7 +39,14 @@ class DuetRun:
         self.moisture = moisture
         self.height = height
 
-    def to_quicfire(self, directory: str | Path) -> None:
+    def to_quicfire(
+        self,
+        directory: str | Path,
+        density: bool = True,
+        moisture: bool = True,
+        height: bool = True,
+        overwrite: bool = False,
+    ) -> None:
         """
         Writes a DuetRun object to QUIC-fire fuel .dat inputs to a directory:
         treesrhof.dat, treesmoist.dat, treesfueldepth.dat
@@ -57,18 +64,38 @@ class DuetRun:
         written_files = []
         if isinstance(directory, str):
             directory = Path(directory)
-        if self.density is not None:
-            treesrhof = self._integrate("density")
-            write_array_to_dat(treesrhof, "treesrhof.dat", directory)
-            written_files.append("treesrhof.dat")
-        if self.moisture is not None:
-            treesmoist = self._integrate("moisture")
-            write_array_to_dat(treesmoist, "treesmoist.dat", directory)
-            written_files.append("treesmoist.dat")
-        if self.height is not None:
-            treesfueldepth = self._integrate("height")
-            write_array_to_dat(treesfueldepth, "treesfueldepth.dat", directory)
-            written_files.append("treesfueldepth.dat")
+
+        files = ["treesrhof.dat", "treesmoist.dat", "treesfueldepth.dat"]
+        to_overwrite = []
+        for file in files:
+            path = directory / file
+            if path.exists():
+                to_overwrite.append(file)
+        if len(to_overwrite) > 0:
+            if overwrite:
+                warnings.warn(
+                    f"File(s) {to_overwrite} already exist(s) and will be overwritten."
+                )
+            else:
+                raise FileExistsError(
+                    f"File(s) {to_overwrite} already exist(s) in {directory}. "
+                    f"Please set overwrite = True."
+                )
+        if density:
+            if self.density is not None:
+                treesrhof = self._integrate("density")
+                write_array_to_dat(treesrhof, "treesrhof.dat", directory)
+                written_files.append("treesrhof.dat")
+        if moisture:
+            if self.moisture is not None:
+                treesmoist = self._integrate("moisture")
+                write_array_to_dat(treesmoist, "treesmoist.dat", directory)
+                written_files.append("treesmoist.dat")
+        if height:
+            if self.height is not None:
+                treesfueldepth = self._integrate("height")
+                write_array_to_dat(treesfueldepth, "treesfueldepth.dat", directory)
+                written_files.append("treesfueldepth.dat")
         if len(written_files) == 0:
             print("No files were written")
         else:
