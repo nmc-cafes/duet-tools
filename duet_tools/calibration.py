@@ -19,33 +19,25 @@ from duet_tools.landfire import LandfireQuery
 class DuetRun:
     """
     Class containing all arrays for a DUET run.
+
+    Attributes
+    ----------
+    density : np.ndarray
+        3D Array of fuel bulk density (kg/m^3) values in the format exported by DUET:
+        Grass bulk denisty in first layer, litter bulk density in second layer.
+    moisture : np.ndarray
+        3D Array of fuel moisture content (%) values in the format exported by DUET:
+        Grass moisture content in first layer, litter moisture content in second layer.
+    height : np.ndarray
+        3D Array of fuel fuel height (m) values in the format exported by DUET:
+        Grass height in first layer, litter depth in second layer.
+
     """
 
-    def __init__(
-        self, density: np.ndarray, height: np.ndarray, moisture: np.ndarray = None
-    ):
+    def __init__(self, density: np.ndarray, height: np.ndarray, moisture: np.ndarray):
         self.density = density
         self.moisture = moisture
         self.height = height
-
-    def add_moisture_array(self, moisture_array=np.ndarray) -> None:
-        """
-        Add an array of moisture values to the DUET run
-
-        Parameters
-        ----------
-        moisture_array : np.ndarray
-            3D array of fuel moisture content values. Must be the same shape as
-            density and height arrays already present in the object. Values must
-            be positive where fuel is present.
-
-        Returns
-        -------
-        None :
-            Sets the DuetRun.moisture attribute to the input array
-        """
-        self._validate_input_moisture(moisture_array)
-        self.moisture = moisture_array
 
     def to_quicfire(self, directory: str | Path) -> None:
         """
@@ -151,6 +143,20 @@ class DuetRun:
 class Targets:
     """
     Class containing and validating target methods and values for fuel parameters.
+    Should be instantiated using [`assign_targets`](reference.md#duet_tools.calibration.assign_targets).
+
+    Attributes
+    ----------
+    method : str
+        Method by which to calibrate to the target values. Must be one of
+        "maxmin", "meansd", or "constant".
+    args : list[str]
+        Sting(s) to be used as keyword arguments for calibration, which correspond
+        to the calibration method. For maxmin calibration, use ["max","min"];
+        for meansd calibration, use ["mean","sd"]; for constant calibration, use
+        []"value"].
+    targets : list
+        Calibration targets, which correspond to the elements of Targets.args.
     """
 
     def __init__(self, method: str, args: list[str], targets: list):
@@ -199,8 +205,18 @@ class Targets:
 
 class FuelParameter:
     """
-    Class containing and validating calibration targets for a single fuel parameter. Targets can
-    be set for multiple fuel types.
+    Class containing and validating calibration targets for a single fuel parameter.
+    A single Target object can be set for multiple fuel types. Should be instantiated using
+    [`set_fuel_parameter`](reference.md#duet_tools.calibration.set_fuel_parameter)
+
+    Attributes
+    ----------
+    parameter : str
+        Fuel parameter for which targets should be set. Must be one of "density", "moisture", or "height".
+    fuel_type : str
+        Fuel type to which targets should be set. Must be one of "grass", "litter", or "all".
+    targets : list[Targets]
+        Targets to be set to the provided parameter and fuel type.
     """
 
     def __init__(self, parameter: str, fuel_types: list[str], targets: list[Targets]):
@@ -258,7 +274,10 @@ def import_duet(directory: str | Path, nx: int, ny: int, nz: int = 2) -> DuetRun
     height = read_dat_to_array(
         directory=directory, filename="surface_depth.dat", nx=nx, ny=ny, nz=nz
     )
-    return DuetRun(density=density, height=height)
+    moisture = read_dat_to_array(
+        directory=directory, filename="surface_moist.dat", nx=nx, ny=ny, nz=nz
+    )
+    return DuetRun(density=density, height=height, moisture=moisture)
 
 
 def assign_targets(method: str, **kwargs: float) -> Targets:
@@ -596,18 +615,13 @@ def _get_array_to_calibrate(duet_run: DuetRun, fueltype: str, fuelparam: str):
             return duet_run.height[1, :, :].copy()
         return np.max(duet_run.height, axis=0)
     if fuelparam == "moisture":
-        if duet_run.moisture is not None:
-            if fueltype == "grass":
-                return duet_run.moisture[0, :, :].copy()
-            if fueltype == "litter":
-                return duet_run.moisture[1, :, :].copy()
-            density_weights = duet_run.density.copy()
-            density_weights[density_weights == 0] = 0.01
-            return np.average(duet_run.moisture, weights=density_weights, axis=0)
-        raise ValueError(
-            "No moisture array available to calibrate. Please add moisture"
-            "array using DuetRun.add_moisture_array"
-        )
+        if fueltype == "grass":
+            return duet_run.moisture[0, :, :].copy()
+        if fueltype == "litter":
+            return duet_run.moisture[1, :, :].copy()
+        density_weights = duet_run.density.copy()
+        density_weights[density_weights == 0] = 0.01
+        return np.average(duet_run.moisture, weights=density_weights, axis=0)
 
 
 def _duplicate_duet_run(duet_run: DuetRun) -> DuetRun:
