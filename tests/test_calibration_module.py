@@ -84,6 +84,7 @@ class TestDuetRun:
 
     def test_to_quicfire(self):
         duet_run = import_duet(directory=DATA_DIR, nx=252, ny=252)
+        duet_run.to_quicfire(TMP_DIR)
         with pytest.raises(FileExistsError):
             duet_run.to_quicfire(TMP_DIR)
         duet_run.to_quicfire(TMP_DIR, overwrite=True)
