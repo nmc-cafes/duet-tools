@@ -6,7 +6,7 @@ The [`calibration`](reference.md#duet_tools.calibration) module in `duet-tools` 
 
 The `duet-tools` package assumes that the user has a license and acces to the DUET program, developed by Los Alamos National Lab. DUET distributes surface fuels based on the locations of tree canopies, the prevailing wind direction, and the time since fire. The user is responsible for parameterizing and running DUET; all calibibration in `duet-tools` is done post-hoc. By default, DUET will output two files called *surface_rhof.dat* and *surface_depth.dat*, which are Fortran-formatted arrays representing the surface fuel bulk density and surface fuel height. They are 3D arrays where the first z layer (axis 0) is represents grass density/height, and the second layer represents tree litter density/height.
 
-*NOTE: Currently DUET supports only grass and litter fuel types. Future versions of DUET may support multiple types of tree litter. Currently `duet-tools` only supports a single tree litter fuel type.*
+*NOTE: Currently `duet-tools` supports only grass and litter fuel types. Future versions of `duet-tools` may support multiple types of tree litter.*
 
 The [`import_duet`](reference.md#duet_tools.calibration.import_duet) function assumes that the DUET outputs have not been renamed. The user must provide the correct x and y dimensions of the DUET. Once DUET output files are imported, the resulting [`DuetRun`](reference.md#duet_tools.calibration.DuetRun) object stores and orgainzes the arrays for all subsequent manipulations.
 
@@ -49,7 +49,7 @@ The [`DuetRun`](reference.md#duet_tools.calibration.DuetRun) class is instantiat
 
 #### Pre-Calibration
 
-Since moisture is not output by DUET, the `DuetRun` class will always have the `moisture` attribute initially set to `None`. The user may choose to add a moisture numpy array to be calibrated using the [`add_moisture_array`](reference.md#duet_tools.calibration.add_moisture_array). The array will have been created outside of DUET and `duet-tools`, but must be the same shape as the DUET outputs, with positive values occurring wherever fuels are present (*i.e.* bulk density > 0). Moisture values can then be calibrated using the methods outlined above.
+Before a DuetRun class is calibrated, it simply holds the surface_*.dat output arrays from a specified directory. A user can conveniently interface with these arrays outside of duet-tools by using the `to_numpy` function (see below).
 
 #### Post-Calibration
 
