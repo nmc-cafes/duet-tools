@@ -55,6 +55,15 @@ class DuetRun:
         ----------
         directory : str | Path
             Path to directory for writing QUIC-fire files
+        density : bool
+            Whether to export the bulk density array. Defaults to True.
+        moisture : bool
+            Whether to export the moisture content array. Defaults to True.
+        height : bool
+            Whether to export the fuel height (depth) arra. Defaults to True.
+        overwrite : bool
+            Whether to overwrite trees*.dat files already present in the directory.
+            If files exist, raises an error if True, warning if False. Defaults to False.
 
         Returns
         -------
