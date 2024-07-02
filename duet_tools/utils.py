@@ -10,8 +10,10 @@ from scipy.io import FortranFile
 
 
 def read_dat_to_array(
-    directory: str | Path, filename: str, nx: int, ny: int, nz: int, order: str = "F"
+    directory: str | Path, filename: str, nx: int, ny: int, nz: int, order: str = "C"
 ) -> np.ndarray:
+    if order not in ["C", "F"]:
+        raise ValueError('Order must be either "C" or "F".')
     if isinstance(directory, str):
         directory = Path(directory)
     with open(Path(directory, filename), "rb") as fin:
