@@ -45,15 +45,15 @@ class TestDuetRun:
         assert isinstance(duet_run.moisture, np.ndarray)
         assert isinstance(duet_run.height, np.ndarray)
         # test array shapes
-        assert duet_run.density.shape == (2, 976, 1998)
-        assert duet_run.moisture.shape == (2, 976, 1998)
-        assert duet_run.height.shape == (2, 976, 1998)
+        assert duet_run.density.shape == (2, 1998, 976)
+        assert duet_run.moisture.shape == (2, 1998, 976)
+        assert duet_run.height.shape == (2, 1998, 976)
         # test that wrong dimensions raise error
         with pytest.raises(ValueError):
             duet_run = import_duet(directory=DATA_DIR, nx=252, ny=252, nz=3)
 
     def test_to_numpy(self):
-        duet_run = import_duet(directory=DATA_DIR, nx=252, ny=252)
+        duet_run = import_duet(directory=DATA_DIR, nx=976, ny=1998)
         # test each fuel parameter and type
         grass_density = duet_run.to_numpy("grass", "density")
         litter_density = duet_run.to_numpy("litter", "density")
@@ -83,7 +83,7 @@ class TestDuetRun:
         assert np.array_equal(integrated_moisture, weighted_average_moisture)
 
     def test_to_quicfire(self):
-        duet_run = import_duet(directory=DATA_DIR, nx=252, ny=252)
+        duet_run = import_duet(directory=DATA_DIR, nx=976, ny=1998)
         duet_run.to_quicfire(TMP_DIR)
         with pytest.raises(FileExistsError):
             duet_run.to_quicfire(TMP_DIR)
