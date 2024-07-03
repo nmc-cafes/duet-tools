@@ -29,6 +29,10 @@ def read_dat_to_array(
         Number of cells in the z-direction
     order : str
         Order of the .dat file. Must be one of "C" or "F". Defaults to "C".
+
+    Returns
+    -------
+        A numpy array with shape (nz, ny, nx).
     """
     if order not in ["C", "F"]:
         raise ValueError('Order must be either "C" or "F".')
@@ -38,9 +42,9 @@ def read_dat_to_array(
         array = (
             FortranFile(fin)
             .read_reals(dtype="float32")
-            .reshape((nz, ny, nx), order=order)
+            .reshape((ny, nx, nz), order=order)
         )
-    return array
+    return np.moveaxis(array, 2, 0)
 
 
 def write_array_to_dat(
@@ -64,14 +68,14 @@ def write_array_to_dat(
     dtype : type
         Data type of the array. Defaults to np.float32
     reshape: bool
-        Whether to reshape the array to (z,y,x). Defaults to True.
+        Whether to reshape the array to (y,x,z). Defaults to True.
     """
     if isinstance(output_dir, str):
         output_dir = Path(output_dir)
     # Reshape array from (y, x, z) to (z, y, x) (also for fortran)
     if reshape:
         if len(array.shape) == 3:
-            array = np.moveaxis(array, 2, 0).astype(dtype)
+            array = np.moveaxis(array, 0, 2).astype(dtype)
         else:
             array = array.astype(dtype)
     else:
