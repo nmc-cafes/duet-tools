@@ -10,7 +10,13 @@ from scipy.io import FortranFile
 
 
 def read_dat_to_array(
-    directory: str | Path, filename: str, nx: int, ny: int, nz: int, order: str = "C"
+    directory: str | Path,
+    filename: str,
+    nx: int,
+    ny: int,
+    nz: int = None,
+    nsp: int = None,
+    order: str = "F",
 ) -> np.ndarray:
     """
     Reads a fortran binary file (.dat) to a numpy array
@@ -27,6 +33,8 @@ def read_dat_to_array(
         Number of cells in the y-direction
     nz : int
         Number of cells in the z-direction
+    nsp: int
+        Number of species
     order : str
         Order of the .dat file. Must be one of "C" or "F". Defaults to "C".
 
@@ -38,13 +46,27 @@ def read_dat_to_array(
         raise ValueError('Order must be either "C" or "F".')
     if isinstance(directory, str):
         directory = Path(directory)
+
+    if (nz is None) and (nsp is None):
+        shape = (nx, ny)
+    elif nz is None:
+        shape = (nsp, nx, ny)
+    elif nsp is None:
+        shape = (nx, ny, nz)
+    else:
+        shape = (nsp, nx, ny, nz)
+
     with open(Path(directory, filename), "rb") as fin:
-        array = (
-            FortranFile(fin)
-            .read_reals(dtype="float32")
-            .reshape((ny, nx, nz), order=order)
-        )
-    return np.moveaxis(array, 2, 0)
+        array = FortranFile(fin).read_reals(dtype="float32").reshape(shape, order=order)
+
+    if (nz is None) and (nsp is None):
+        return np.moveaxis(array, 1, 0)
+    elif nz is None:
+        return np.moveaxis(array, 2, 1)
+    elif nsp is None:
+        return np.transpose(array)
+    else:
+        return np.moveaxis(np.moveaxis(array, 3, 1), 3, 1)
 
 
 def write_array_to_dat(
