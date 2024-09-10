@@ -284,7 +284,7 @@ class FuelParameter:
 
 
 def import_duet(
-    directory: str | Path, nx: int, ny: int, nsp: int = 2, version: str = "v2"
+    directory: str | Path, nx: int, ny: int, nsp: int, version: str = "v2"
 ) -> DuetRun:
     """
     Creates a DuetRun object from DUET output files
@@ -320,35 +320,28 @@ def import_duet(
         "depth": {"v1": "surface_depth.dat", "v2": "surface_depth_layered.dat"},
         "moist": {"v1": "surface_moist.dat", "v2": "surface_moist_layered.dat"},
     }
-    try:
-        density_nsp = read_dat_to_array(
-            directory=directory,
-            filename=name_dict["rhof"].get(version),
-            nx=nx,
-            ny=ny,
-            nz=nsp,
-        )
-        height_nsp = read_dat_to_array(
-            directory=directory,
-            filename=name_dict["depth"].get(version),
-            nx=nx,
-            ny=ny,
-            nz=nsp,
-        )
-        moisture_nsp = read_dat_to_array(
-            directory=directory,
-            filename=name_dict["moist"].get(version),
-            nx=nx,
-            ny=ny,
-            nz=nsp,
-        )
-    except ValueError as error:
-        message = (
-            "Is your nsp correct?"
-            if version == "v2"
-            else "Check array dimensions nx, ny, nsp."
-        )
-        print(f"{error}. {message}")
+
+    density_nsp = read_dat_to_array(
+        directory=directory,
+        filename=name_dict["rhof"].get(version),
+        nx=nx,
+        ny=ny,
+        nz=nsp,
+    )
+    height_nsp = read_dat_to_array(
+        directory=directory,
+        filename=name_dict["depth"].get(version),
+        nx=nx,
+        ny=ny,
+        nz=nsp,
+    )
+    moisture_nsp = read_dat_to_array(
+        directory=directory,
+        filename=name_dict["moist"].get(version),
+        nx=nx,
+        ny=ny,
+        nz=nsp,
+    )
 
     density = np.zeros((2, ny, nx))
     height = np.zeros((2, ny, nx))
