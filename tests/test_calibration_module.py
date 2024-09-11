@@ -39,7 +39,7 @@ DATA_DIR = TEST_DIR / "test-data"
 class TestDuetRun:
     def test_import_duet_v1(self):
         duet_run = import_duet(
-            directory=DATA_DIR / "v1", nx=333, ny=295, nsp=2, version="v1"
+            directory=DATA_DIR / "v1", nx=976, ny=1998, nsp=2, version="v1"
         )
         # test that data types are correct
         assert isinstance(duet_run, DuetRun)
@@ -47,16 +47,18 @@ class TestDuetRun:
         assert isinstance(duet_run.moisture, np.ndarray)
         assert isinstance(duet_run.height, np.ndarray)
         # test array shapes
-        assert duet_run.density.shape == (2, 295, 333)
-        assert duet_run.moisture.shape == (2, 295, 333)
-        assert duet_run.height.shape == (2, 295, 333)
+        assert duet_run.density.shape == (2, 1998, 976)
+        assert duet_run.moisture.shape == (2, 1998, 976)
+        assert duet_run.height.shape == (2, 1998, 976)
         # test that wrong dimensions raises error
         with pytest.raises(ValueError):
-            duet_run = import_duet(directory=DATA_DIR / "v1", nx=333, ny=295, nsp=3)
+            duet_run = import_duet(
+                directory=DATA_DIR / "v1", nx=976, ny=1998, nsp=3, version="v1"
+            )
         # test that wrong version number raises error
         with pytest.raises(ValueError):
             duet_run = import_duet(
-                directory=DATA_DIR / "v1", nx=333, ny=295, nsp=2, version="v3"
+                directory=DATA_DIR / "v1", nx=976, ny=1998, nsp=2, version="v3"
             )
 
     def test_import_duet_v2(self):
@@ -73,6 +75,10 @@ class TestDuetRun:
         assert duet_run.moisture.shape == (2, 295, 333)
         assert duet_run.height.shape == (2, 295, 333)
         # Plot to confirm stuff is working
+        plot_array(duet_run.density[0, :, :], "grass density")
+        plot_array(duet_run.density[1, :, :], "litter density")
+        plot_array(duet_run.moisture[0, :, :], "grass moisture")
+        plot_array(duet_run.moisture[1, :, :], "litter moisture")
         plot_array(duet_run.height[0, :, :], "grass height")
         plot_array(duet_run.height[1, :, :], "litter height")
         # test that wrong dimensions raise error

@@ -10,6 +10,7 @@ import warnings
 
 # External Imports
 import numpy as np
+from matplotlib import pyplot as plt
 
 # Internal Imports
 from duet_tools.utils import read_dat_to_array, write_array_to_dat
@@ -299,7 +300,7 @@ def import_duet(
         Number of DUET domain cells in the y-direction
     nsp: int
         Number of vegetation species (tree species + grass) in the DUET outputs.
-        Defaults to 2 (grass and litter) for DUET v1.
+        Must be 2 (grass and litter) for DUET v1.
     version: str
         DUET version that produced the outputs. Must be one of ["v1","v2"]. Defaults to "v2".
 
@@ -326,32 +327,30 @@ def import_duet(
         filename=name_dict["rhof"].get(version),
         nx=nx,
         ny=ny,
-        nz=nsp,
+        nsp=nsp,
     )
     height_nsp = read_dat_to_array(
         directory=directory,
         filename=name_dict["depth"].get(version),
         nx=nx,
         ny=ny,
-        nz=nsp,
+        nsp=nsp,
     )
     moisture_nsp = read_dat_to_array(
         directory=directory,
         filename=name_dict["moist"].get(version),
         nx=nx,
         ny=ny,
-        nz=nsp,
+        nsp=nsp,
     )
-
     density = np.zeros((2, ny, nx))
     height = np.zeros((2, ny, nx))
     moisture = np.zeros((2, ny, nx))
     density[0, :, :] = density_nsp[0, :, :]
     height[0, :, :] = height_nsp[0, :, :]
     moisture[0, :, :] = moisture_nsp[0, :, :]
-
-    density[1:, :, :] = np.sum(density[1:, :, :], axis=0)
-    height[1, :, :] = np.max(height[1:, :, :], axis=0)
+    density[1, :, :] = np.sum(density_nsp[1:, :, :], axis=0)
+    height[1, :, :] = np.sum(height_nsp[1:, :, :], axis=0)
     moisture[1, :, :] = _density_weighted_average(
         moisture_nsp[1:, :, :], density_nsp[1:, :, :]
     )
