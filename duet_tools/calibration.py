@@ -10,6 +10,7 @@ import warnings
 
 # External Imports
 import numpy as np
+from matplotlib import pyplot as plt
 
 # Internal Imports
 from duet_tools.utils import read_dat_to_array, write_array_to_dat
@@ -283,7 +284,9 @@ class FuelParameter:
         return parameter
 
 
-def import_duet(directory: str | Path, nx: int, ny: int, nz: int = 2) -> DuetRun:
+def import_duet(
+    directory: str | Path, nx: int, ny: int, nsp: int, version: str = "v2"
+) -> DuetRun:
     """
     Creates a DuetRun object from DUET output files
 
@@ -295,24 +298,63 @@ def import_duet(directory: str | Path, nx: int, ny: int, nz: int = 2) -> DuetRun
         Number of DUET domain cells in the x-direction
     ny: int
         Number of DUET domain cells in the y-direction
-    nz: int
-        Number of layers (fuel types) in the DUET outputs. Defaults to 2 (grass and litter).
+    nsp: int
+        Number of vegetation species (tree species + grass) in the DUET outputs.
+        Must be 2 (grass and litter) for DUET v1.
+    version: str
+        DUET version that produced the outputs. Must be one of ["v1","v2"]. Defaults to "v2".
 
     Returns
     -------
     Instance of class DuetRun
     """
+    supported = ["v1", "v2"]
+    if version not in supported:
+        raise ValueError(
+            f"Version {version} not supported. Please use one of {supported}"
+        )
     if isinstance(directory, str):
         directory = Path(directory)
-    density = read_dat_to_array(
-        directory=directory, filename="surface_rhof.dat", nx=nx, ny=ny, nz=nz
+
+    name_dict = {
+        "rhof": {"v1": "surface_rhof.dat", "v2": "surface_rhof_layered.dat"},
+        "depth": {"v1": "surface_depth.dat", "v2": "surface_depth_layered.dat"},
+        "moist": {"v1": "surface_moist.dat", "v2": "surface_moist_layered.dat"},
+    }
+
+    density_nsp = read_dat_to_array(
+        directory=directory,
+        filename=name_dict["rhof"].get(version),
+        nx=nx,
+        ny=ny,
+        nsp=nsp,
     )
-    height = read_dat_to_array(
-        directory=directory, filename="surface_depth.dat", nx=nx, ny=ny, nz=nz
+    height_nsp = read_dat_to_array(
+        directory=directory,
+        filename=name_dict["depth"].get(version),
+        nx=nx,
+        ny=ny,
+        nsp=nsp,
     )
-    moisture = read_dat_to_array(
-        directory=directory, filename="surface_moist.dat", nx=nx, ny=ny, nz=nz
+    moisture_nsp = read_dat_to_array(
+        directory=directory,
+        filename=name_dict["moist"].get(version),
+        nx=nx,
+        ny=ny,
+        nsp=nsp,
     )
+    density = np.zeros((2, ny, nx))
+    height = np.zeros((2, ny, nx))
+    moisture = np.zeros((2, ny, nx))
+    density[0, :, :] = density_nsp[0, :, :]
+    height[0, :, :] = height_nsp[0, :, :]
+    moisture[0, :, :] = moisture_nsp[0, :, :]
+    density[1, :, :] = np.sum(density_nsp[1:, :, :], axis=0)
+    height[1, :, :] = np.sum(height_nsp[1:, :, :], axis=0)
+    moisture[1, :, :] = _density_weighted_average(
+        moisture_nsp[1:, :, :], density_nsp[1:, :, :]
+    )
+
     return DuetRun(density=density, height=height, moisture=moisture)
 
 
