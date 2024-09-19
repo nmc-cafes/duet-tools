@@ -103,9 +103,9 @@ class TestDuetRun:
         assert np.array_equal(integrated_height, np.max(duet_run.height, axis=0))
         weights = _maxmin_calibration(duet_run.density.copy(), max=1.0, min=0)
         weights[weights == 0] = 0.01
-        weighted_average_moisture = np.average(
-            duet_run.moisture, axis=0, weights=weights
-        )
+        masked = np.ma.masked_array(duet_run.moisture, duet_run.moisture == 0)
+        averaged = np.ma.average(masked, axis=0, weights=weights)
+        weighted_average_moisture = np.ma.filled(averaged, 0)
         assert np.array_equal(integrated_moisture, weighted_average_moisture)
 
     def test_to_quicfire(self):

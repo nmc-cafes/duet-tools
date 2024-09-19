@@ -853,5 +853,7 @@ def _density_weighted_average(moisture: np.ndarray, density: np.ndarray) -> np.n
     """
     weights = _maxmin_calibration(density, max=1.0, min=0)
     weights[weights == 0] = 0.01
-    integrated = np.average(moisture, axis=0, weights=weights)
+    masked = np.ma.masked_array(moisture, moisture == 0)
+    averaged = np.ma.average(masked, axis=0, weights=weights)
+    integrated = np.ma.filled(averaged, 0)
     return integrated
