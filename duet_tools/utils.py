@@ -17,6 +17,7 @@ def read_dat_to_array(
     nz: int = None,
     nsp: int = None,
     order: str = "F",
+    dtype: type = np.float32,
 ) -> np.ndarray:
     """
     Reads a fortran binary file (.dat) to a numpy array
@@ -57,7 +58,7 @@ def read_dat_to_array(
         shape = (nsp, nx, ny, nz)
 
     with open(Path(directory, filename), "rb") as fin:
-        array = FortranFile(fin).read_reals(dtype="float32").reshape(shape, order=order)
+        array = FortranFile(fin).read_reals(dtype=dtype).reshape(shape, order=order)
 
     if (nz is None) and (nsp is None):
         return np.moveaxis(array, 1, 0)
