@@ -90,11 +90,16 @@ def write_array_to_dat(
     dtype : type
         Data type of the array. Defaults to np.float32
     reshape: bool
-        Whether to reshape the array to (y,x,z). Defaults to True.
+        Whether to reshape the array. Array dimensions in duet-tools are either (nz,ny,nx)
+        or (nsp,ny,nx) and will be written in row-major order, meaning that with column-major
+        order (default for fortran), they will be (nx, ny, nz). Reshaping (nsp, ny, nx) arrays
+        to (ny, nx, nsp) will result in the column-major order of (nsp, nx, ny), which is
+        expected by DUET and LANL Trees. If True, reshaping will only be applied to 3D arrays.
+        Defaults to False.
     """
     if isinstance(output_dir, str):
         output_dir = Path(output_dir)
-    # Reshape array from (y, x, z) to (z, y, x) (also for fortran)
+    # Reshape array from (nsp, ny, nx) to (ny, nx, nsp)
     if reshape:
         if len(array.shape) == 3:
             array = np.moveaxis(array, 0, 2).astype(dtype)
@@ -103,6 +108,6 @@ def write_array_to_dat(
     else:
         array = array.astype(dtype)
 
-    # Write the zarr array to a dat file with scipy FortranFile package
+    # Written in row-major order
     with FortranFile(Path(output_dir, dat_name), "w") as f:
         f.write_record(array)
