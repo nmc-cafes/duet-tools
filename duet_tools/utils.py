@@ -36,7 +36,7 @@ def read_dat_to_array(
     nsp: int
         Number of species
     order : str
-        Order of the .dat file. Must be one of "C" or "F". Defaults to "C".
+        Order of the .dat file. Must be one of "C" or "F". Defaults to "F".
 
     Returns
     -------
