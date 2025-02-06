@@ -10,7 +10,6 @@ import warnings
 
 # External Imports
 import numpy as np
-from matplotlib import pyplot as plt
 
 # Internal Imports
 from duet_tools.utils import read_dat_to_array, write_array_to_dat
