@@ -122,8 +122,8 @@ class InputFile:
             f.write(f"{self.dy}  ! cell size in y direction (in meters)\n")
             f.write(f"{self.dz}  ! cell size in z direction (in meters)\n")
             f.write(f"{self.random_seed}  ! random number seed\n")
-            f.write(f"{self.wind_direction} ! wind direction (in degrees)\n")
+            f.write(f"{self.wind_direction}  ! wind direction (in degrees)\n")
             f.write(
-                f"{self.wind_variability} ! wind direction variability (in degrees)\n"
+                f"{self.wind_variability}  ! wind direction variability (in degrees)\n"
             )
             f.write(f"{self.duration}  ! duration of simulation (in years)\n")
