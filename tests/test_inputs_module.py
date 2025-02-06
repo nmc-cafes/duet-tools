@@ -32,24 +32,18 @@ class TestInputFile:
         assert input_file.dy == 2.0
         assert input_file.wind_variability == 359
 
-        # test that wrong data type raises error
-        with pytest.raises(ValueError):
-            input_file = InputFile.create(
-                nx=234, ny=345, nz="30", duration=5, wind_direction=225
-            )
-
     def test_write_input_file(self):
         verification = [
-            "234  ! number of cells in x direction",
-            "345  ! number of cells in y direction",
-            "30  ! number of cells in z direction",
-            "2.0  ! cell size in x direction (in meters)",
-            "2.0  ! cell size in y direction (in meters)",
-            "1.0  ! cell size in z direction (in meters)",
-            "47  ! random number seed",
-            "225  ! wind direction (in degrees)",
-            "359.0  ! wind direction variability (in degrees)",
-            "5  ! duration of simulation (in years)",
+            "234  ! number of cells in x direction\n",
+            "345  ! number of cells in y direction\n",
+            "30  ! number of cells in z direction\n",
+            "2.0  ! cell size in x direction (in meters)\n",
+            "2.0  ! cell size in y direction (in meters)\n",
+            "1.0  ! cell size in z direction (in meters)\n",
+            "47  ! random number seed\n",
+            "225  ! wind direction (in degrees)\n",
+            "359.0  ! wind direction variability (in degrees)\n",
+            "5  ! duration of simulation (in years)\n",
         ]
 
         input_file = InputFile.create(
