@@ -1,5 +1,14 @@
 import requests
 from setuptools import find_packages, setup
+import sys
+
+installing_landfire = any(arg.startswith("duet-tools[landfire]") for arg in sys.argv)
+using_python_312 = sys.version_info >= (3, 12)
+if using_python_312 and installing_landfire:
+    sys.exit(
+        "Error: 'duet-tools[landfire]' is only available for Python <3.12.\n"
+        "Use Python 3.10 or 3.11 to install with the 'landfire' extra."
+    )
 
 
 def read_file(fname):
