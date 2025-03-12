@@ -16,10 +16,10 @@ def get_version():
     return version[1:]  # Remove the leading "v" from the version number
 
 
-def get_requirements():
+def get_requirements(file_name: str):
     """Get the requirements from the requirements.txt file."""
     requirements = []
-    with open("requirements/requirements.txt", encoding="utf-8") as fd:
+    with open(f"requirements/{file_name}.txt", encoding="utf-8") as fd:
         for line in fd:
             line = line.strip()
             if line and not line.startswith("#"):
@@ -34,6 +34,8 @@ VERSION = get_version()
 LICENSE = "MIT"
 URL = "https://github.com/nmc-cafes/duet-tools"
 PROJECT_URLS = {"Bug Tracker": f"{URL}/issues"}
+INSTALL_REQUIRES = get_requirements("requirements")
+EXTRAS_REQUIRE = {"landfire": get_requirements("requirements_landfire")}
 
 setup(
     name=NAME,
@@ -51,14 +53,15 @@ setup(
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Topic :: Scientific/Engineering",
     ],
     package_dir={"": "."},
     packages=find_packages(exclude=["docs", "tests"]),
     package_data={"duet_tools": ["data/*"]},
     include_package_data=True,
-    install_requires=[
-        "numpy<2",
-    ],
-    python_requires="~=3.10",
+    install_requires=INSTALL_REQUIRES,
+    extras_require=EXTRAS_REQUIRE,
+    python_requires=">=3.10",
 )
