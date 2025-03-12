@@ -1,12 +1,4 @@
 pytest
-numpy<2
-pandas
-geojson
-shapely
-pyproj
-landfire
-rasterio
+numpy
 scipy
 matplotlib
-fiona
-geopandas

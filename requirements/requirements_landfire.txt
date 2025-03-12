@@ -1,0 +1,8 @@
+pandas
+geojson
+shapely
+pyproj
+landfire
+landfire[geospatial]
+rasterio
+python_requires<"3.12"

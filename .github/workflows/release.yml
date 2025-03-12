@@ -39,7 +39,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ["3.10"]
+        python-version: ["3.10", "3.11", "3.12"]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -47,18 +47,32 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install package from Test PyPi
+      - name: Install package from Test PyPi (Python <3.12)
+        if: matrix.python-version < '3.12'
         run: |
-          python -m pip install --upgrade pip
+          pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple duet-tools[landfire]
+      - name: Install package from Test PyPi (Python 3.12+)
+        if: matrix.python-version < '3.12'
+        run: |
           pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple duet-tools
-      - name: Install test dependencies
+      - name: Install test dependencies (Python <3.12)
+        if: matrix.python-version < '3.12'
+        run: |
+          pip install -r requirements/test_requirements_landfire.txt
+      - name: Install test dependencies (Python 3.12+)
+        if: matrix.python-version >= '3.12'
         run: |
           pip install -r requirements/test_requirements.txt
-      - name: Run pytest
+      - name: Run pytest (Python <3.12)
+        if: matrix.python-version < '3.12'
         env:
           TEST_ENV: test_pypi
-        run: |
-          pytest
+        run: pytest
+      - name: Run pytest (Python 3.12+)
+        if: matrix.python-version >= '3.12'
+        env:
+          TEST_ENV: test_pypi
+        run: pytest --ignore=tests/test_landfire_module.py
 
   upload-to-pypi:
     needs: test-on-test-pypi
@@ -90,7 +104,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ["3.10"]
+        python-version: ["3.10", "3.11", "3.12"]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -98,15 +112,29 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install package from PyPi
+      - name: Install package from PyPi (Python <3.12)
+        if: matrix.python-version < '3.12'
         run: |
-          python -m pip install --upgrade pip
-          pip install duet-tools
-      - name: Install test dependencies
+          pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple duet-tools[landfire]
+      - name: Install package from PyPi (Python 3.12+)
+        if: matrix.python-version < '3.12'
+        run: |
+          pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple duet-tools
+      - name: Install test dependencies (Python <3.12)
+        if: matrix.python-version < '3.12'
+        run: |
+          pip install -r requirements/test_requirements_landfire.txt
+      - name: Install test dependencies (Python 3.12+)
+        if: matrix.python-version >= '3.12'
         run: |
           pip install -r requirements/test_requirements.txt
-      - name: Run pytest
+      - name: Run pytest (Python <3.12)
+        if: matrix.python-version < '3.12'
         env:
-          TEST_ENV: pypi
-        run: |
-          pytest
+          TEST_ENV: test_pypi
+        run: pytest
+      - name: Run pytest (Python 3.12+)
+        if: matrix.python-version >= '3.12'
+        env:
+          TEST_ENV: test_pypi
+        run: pytest --ignore=tests/test_landfire_module.py
