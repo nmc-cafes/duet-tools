@@ -6,6 +6,7 @@ Functions for interfacing with the LandFire API and processing the outputs
 from pathlib import Path
 import importlib.resources
 import re
+import warnings
 import zipfile
 
 # External imports
@@ -17,6 +18,9 @@ from pyproj import Transformer
 import landfire
 from landfire.geospatial import get_bbox_from_polygon
 import rasterio as rio
+
+# Internal imports
+from duet_tools.calibration import Targets
 
 try:  # Python 3.9+
     DATA_PATH = importlib.resources.files("duet_tools").joinpath("data")
@@ -141,6 +145,96 @@ def query_landfire(
         moisture=sb40_arr[2, :, :],
         height=sb40_arr[3, :, :],
     )
+
+
+def assign_targets_from_sb40(
+    query: LandfireQuery, fuel_type: str, parameter: str, method: str = "maxmin"
+) -> Targets:
+    """
+    Assign a calibration target and method for a given fuel type and parameter.
+
+    Parameters
+    ----------
+    query : LandfireQuery
+        An object of class LandfireQuery created with query_landfire. Calibration targets
+        will be calculated from these values.
+    fuel_type : str
+        The fuel type to obtain target values for. Must be one of "grass", "litter", or "all".
+    parameter : str
+        The fuel parameter to obtain target values for. Must be one of "density", "moisture", or "height".
+    method : str
+        The desired calibration method for the sb40-derived targets. Must be one of "maxmin", "meandsd",
+        or "constant". Default is "maxmin". "constant" is only recommended if only one parameter value
+        is present for the given fuel type. "meansd" is not recommended since values often do not follow a
+        normal distribution.
+
+    Returns
+    -------
+    Targets :
+        A Targets object with values derived from Landfire and SB40 fuel models
+    """
+    query._validate_get_targets(fuel_type, parameter, method)
+    # select fuel parameter
+    if parameter == "density":
+        param_arr = query.density
+    elif parameter == "moisture":
+        param_arr = query.moisture
+    else:
+        param_arr = query.height
+    # select fuel type
+    if fuel_type == "grass":
+        fuel_arr = param_arr[query._get_fueltype_indices(query.fuel_types, 1)]
+    elif fuel_type == "litter":
+        fuel_arr = param_arr[query._get_fueltype_indices(query.fuel_types, -1)]
+    else:
+        fuel_arr = param_arr
+    # get targets based on method
+    fuel_arr = fuel_arr[np.where(fuel_arr > 0)]
+    if method == "maxmin":
+        if np.max(fuel_arr) == np.min(fuel_arr):
+            warnings.warn(
+                f"There is only one value for {fuel_type} {parameter}. "
+                "Setting calibration method to 'constant'",
+                UserWarning,
+            )
+            method = "constant"
+            args = ["value"]
+            targets = [np.mean(fuel_arr)]
+        else:
+            method = "maxmin"
+            args = ["max", "min"]
+            targets = [np.max(fuel_arr), np.min(fuel_arr)]
+        return Targets(
+            method=method,
+            args=args,
+            targets=targets,
+        )
+    if method == "meansd":
+        if np.max(fuel_arr) == np.min(fuel_arr):
+            warnings.warn(
+                f"There is only one value for {fuel_type} {parameter}. "
+                "Setting calibration method to 'constant'",
+                UserWarning,
+            )
+            method = "constant"
+            args = ["value"]
+            targets = [np.mean(fuel_arr)]
+        else:
+            method = "meansd"
+            args = ["mean", "sd"]
+            targets = [np.mean(fuel_arr), np.std(fuel_arr)]
+        return Targets(
+            method=method,
+            args=args,
+            targets=targets,
+        )
+    if method == "constant":
+        if np.max(fuel_arr) != np.min(fuel_arr):
+            raise ValueError(
+                "Multiple values present in Landfire query. Please use either maxmin "
+                "or meansd calibration method."
+            )
+        return Targets(method="constant", args=["value"], targets=[np.mean(fuel_arr)])
 
 
 def _query_landfire(
