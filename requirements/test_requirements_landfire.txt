@@ -1,0 +1,11 @@
+pytest
+numpy
+pandas
+geojson
+shapely
+pyproj
+landfire
+landfire[geospatial]
+rasterio
+scipy
+matplotlib
