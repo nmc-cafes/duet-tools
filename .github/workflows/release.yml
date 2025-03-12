@@ -47,31 +47,32 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install package from Test PyPi
+      - name: Install package from Test PyPi (Python <3.12)
+        if: matrix.python-version < '3.12'
         run: |
-          python -m pip install --upgrade pip
-          if [[ "${{ matrix.python-version }}" < "3.12" ]]; then
-            pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple duet-tools[landfire]
-          else
-            pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple duet-tools
-          fi
-      - name: Install test dependencies
+          pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple duet-tools[landfire]
+      - name: Install package from Test PyPi (Python 3.12+)
+        if: matrix.python-version < '3.12'
         run: |
-          if [[ "${{ matrix.python-version }}" < "3.12" ]]; then
-            pip install -r requirements/test_requirements_landfire.txt
-          else
-            pip install -r requirements/test_requirements.txt
-          fi
-      - name: Run pytest
+          pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple duet-tools
+      - name: Install test dependencies (Python <3.12)
+        if: matrix.python-version < '3.12'
+        run: |
+          pip install -r requirements/test_requirements_landfire.txt
+      - name: Install test dependencies (Python 3.12+)
+        if: matrix.python-version >= '3.12'
+        run: |
+          pip install -r requirements/test_requirements.txt
+      - name: Run pytest (Python <3.12)
+        if: matrix.python-version < '3.12'
         env:
           TEST_ENV: test_pypi
-        run: |
-          PYTHON_VERSION=${{ matrix.python-version }}
-          if [ "$(echo "$PYTHON_VERSION < 3.12" | bc -l)" -eq 1 ]; then
-            pytest
-          else
-            pytest --ignore=tests/test_landfire_module.py
-          fi
+        run: pytest
+      - name: Run pytest (Python 3.12+)
+        if: matrix.python-version >= '3.12'
+        env:
+          TEST_ENV: test_pypi
+        run: pytest --ignore=tests/test_landfire_module.py
 
   upload-to-pypi:
     needs: test-on-test-pypi
@@ -111,28 +112,29 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install package from PyPi
+      - name: Install package from PyPi (Python <3.12)
+        if: matrix.python-version < '3.12'
         run: |
-          python -m pip install --upgrade pip
-          if [[ "${{ matrix.python-version }}" < "3.12" ]]; then
-            pip install duet-tools[landfire]
-          else
-            pip install duet-tools
-          fi
-      - name: Install test dependencies
+          pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple duet-tools[landfire]
+      - name: Install package from PyPi (Python 3.12+)
+        if: matrix.python-version < '3.12'
         run: |
-          if [[ "${{ matrix.python-version }}" < "3.12" ]]; then
-            pip install -r requirements/test_requirements_landfire.txt
-          else
-            pip install -r requirements/test_requirements.txt
-          fi
-      - name: Run pytest
+          pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple duet-tools
+      - name: Install test dependencies (Python <3.12)
+        if: matrix.python-version < '3.12'
+        run: |
+          pip install -r requirements/test_requirements_landfire.txt
+      - name: Install test dependencies (Python 3.12+)
+        if: matrix.python-version >= '3.12'
+        run: |
+          pip install -r requirements/test_requirements.txt
+      - name: Run pytest (Python <3.12)
+        if: matrix.python-version < '3.12'
         env:
-          TEST_ENV: pypi
-        run: |
-          PYTHON_VERSION=${{ matrix.python-version }}
-          if [ "$(echo "$PYTHON_VERSION < 3.12" | bc -l)" -eq 1 ]; then
-            pytest
-          else
-            pytest --ignore=tests/test_landfire_module.py
-          fi
+          TEST_ENV: test_pypi
+        run: pytest
+      - name: Run pytest (Python 3.12+)
+        if: matrix.python-version >= '3.12'
+        env:
+          TEST_ENV: test_pypi
+        run: pytest --ignore=tests/test_landfire_module.py
