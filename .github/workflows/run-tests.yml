@@ -33,7 +33,9 @@ jobs:
       env:
         TEST_ENV: local
       run: |
-        if [[ "${{ matrix.python-version }}" < "3.12" ]]; then
+        PYTHON_VERSION=${{ matrix.python-version }}
+        if [ "$(echo "$PYTHON_VERSION < 3.12" | bc -l)" -eq 1 ]; then
           pytest
         else
           pytest --ignore=tests/test_landfire_module.py
+        fi

@@ -66,10 +66,12 @@ jobs:
         env:
           TEST_ENV: test_pypi
         run: |
-          if [[ "${{ matrix.python-version }}" < "3.12" ]]; then
+          PYTHON_VERSION=${{ matrix.python-version }}
+          if [ "$(echo "$PYTHON_VERSION < 3.12" | bc -l)" -eq 1 ]; then
             pytest
           else
             pytest --ignore=tests/test_landfire_module.py
+          fi
 
   upload-to-pypi:
     needs: test-on-test-pypi
@@ -128,7 +130,9 @@ jobs:
         env:
           TEST_ENV: pypi
         run: |
-          if [[ "${{ matrix.python-version }}" < "3.12" ]]; then
+          PYTHON_VERSION=${{ matrix.python-version }}
+          if [ "$(echo "$PYTHON_VERSION < 3.12" | bc -l)" -eq 1 ]; then
             pytest
           else
             pytest --ignore=tests/test_landfire_module.py
+          fi
