@@ -6,9 +6,10 @@ duet-tools is a Python package that provides a convenient interface for programm
 
 The goals of duet-tools are to:
 
-1. Read in DUET outputs for easy manipulation.
-2. Calibrate DUET outputs by scaling the magnitude of the parameter values while retaining the spatial distributions from DUET.
-3. Provide a platform for the future development of additional tools centered around DUET
+1. Write a DUET input file.
+2. Read in DUET outputs for easy manipulation.
+3. Calibrate DUET outputs by scaling the magnitude of the parameter values while retaining the spatial distributions from DUET.
+4. Provide a platform for the future development of additional tools centered around DUET.
 
 
 ## Installation
