@@ -2,14 +2,20 @@ from __future__ import annotations
 
 from pathlib import Path
 from duet_tools import (
+    InputFile,
     import_duet,
     assign_targets,
     set_fuel_parameter,
     calibrate,
 )
 
-# Import DUET outputs
 duet_path = Path(__file__).parent.parent / "tests" / "tmp"
+
+# Create DUET input file
+input_file = InputFile.create(nx=100, ny=100, nz=30, duration=5, wind_direction=270)
+input_file.to_file(duet_path)
+
+# Import DUET outputs
 duet_run = import_duet(directory=duet_path, nx=100, ny=100)
 
 # Assign targets for each fuel type and fuel parameter

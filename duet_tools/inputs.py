@@ -8,10 +8,6 @@ from __future__ import annotations
 from pathlib import Path
 from random import randint
 
-# External Imports
-
-# Internal Imports
-
 
 class InputFile:
     """
