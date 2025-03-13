@@ -1,3 +1,44 @@
+## Inputs
+
+A DUET input file can be created and written programatically. Please see [inputs](reference.md#duet_tools.inputs) for full documentation.
+
+### How to create and write a DUET input file
+
+A DUET input file is represented by the [`InputFile`](reference.md#duet_tools.inputs.InputFile) class. To create an instance of the class, use the [`InputFile.create`](reference.md#duet_tools.inputs.InputFile.create) class method.
+
+```python
+from duet_tools import InputFile
+
+input_file = InputFile.create(
+    nx=200, 
+    ny=200, 
+    nz=30,
+    duration=5,
+    wind_direction=270,
+)
+```
+
+Once an `InputFile` is created, it can be written to the DUET simulation directory using [`InputFile.to_file`](reference.md#duet_tools.inputs.InputFile.to_file).
+
+```python
+from pathlib import Path
+from duet_tools import InputFile
+
+input_file = InputFile.create(
+    nx=200, 
+    ny=200, 
+    nz=30,
+    duration=5,
+    wind_direction=270,
+)
+
+duet_dir = Path("path/to/duet/directory")
+
+input_file.to_file(directory=duet_dir)
+```
+
+This will write a file called `duet.in` to the directory. Fuel grids must be supplied by the user.
+
 ## Calibration
 
 DUET output files can be calibrated to match user-provided or data-derived ranges or distributions of fuel parameters. Please see [calibration](reference.md#duet_tools.calibration) for full documentation.
@@ -69,7 +110,13 @@ calibrated_duet = calibrate(
 
 ### How to calibrate DUET using LANDFIRE data
 
-When fuel parameter targets are not known for the study area, calibration can be conducted using targets derived from LANDFIRE data (Scott and Burgan 40 Fuel Models; SB40). These data can be queried using the secondary `landfire` module. Please see [landfire](reference.md#duet_tools.landfire) for full documentation.
+When fuel parameter targets are not known for the study area, calibration can be conducted using targets derived from LANDFIRE data (Scott and Burgan 40 Fuel Models; SB40). These data can be queried using the secondary `landfire` module, installed as an extra. Please see [landfire](reference.md#duet_tools.landfire) for full documentation.
+
+Installation of the `landfire` extra requires Python <3.12. Install as follows:
+
+```bash
+pip install duet-tools[landfire]
+```
 
 The first step is to use the [`query_landfire`](reference.md#duet_tools.landfire.query_landfire) function to access fuels data for the specific area of interest. A spatial bounding box must be supplied in the form of either a geojson or shapely polygon. The function returns a [`LandfireQuery`](reference.md#duet_tools.landfire.LandfireQuery) class object.
 
@@ -93,9 +140,11 @@ landfire_query = query_landfire(
 - **input_epsg** is the EPSG code for the coordinate reference system and projects of the area of interest polygon.
 - **delete_files** specifies whether or not to delete to files downloaded from the LANDFIRE website. Since the files are usually not needed after the `LandfireQuery` object is returned, it defaults to True.
 
-Once LANDFIRE data is queried, targets can be assigned for whatever fuel parameters and types the user desires using [`assign_targets_from_sb40`](reference.md#duet_tools.calibration.assign_targets_from_sb40). Unlike `assign_targets`, the fuel parameter and fuel type must be specified for targets to be assigned.
+Once LANDFIRE data is queried, targets can be assigned for whatever fuel parameters and types the user desires using [`assign_targets_from_sb40`](reference.md#duet_tools.landfire.assign_targets_from_sb40). Unlike `assign_targets`, the fuel parameter and fuel type must be specified for targets to be assigned.
 
 ```python
+from duet_tools.landfire import assign_targets_from_sb40
+
 litter_density_sb40 = assign_targets_from_sb40(
     query=landfire_query,
     fuel_type="litter",
