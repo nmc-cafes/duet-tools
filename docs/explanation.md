@@ -1,6 +1,6 @@
 ## Inputs Module
 
-The [`inputs`](reference.md#duet_tools.inputs) module in `duet-tools` offers a convenient way to programmatically write a DUET input file. Other inputs, such as canopy and species grids, must be supplied by the user. A DUET input file takes information about the 3D domain size (**nx, ny, nz**) and resolution (**dx, dy, dz**), the wind information (**wind_direction, wind_variability**), and the simulation parameters (**duration, random_seed**). 
+The [`inputs`](reference.md#duet_tools.inputs) module in `duet-tools` offers a convenient way to programmatically write a DUET input file. Other inputs, such as canopy and species grids, must be supplied by the user. A DUET input file takes information about the 3D domain size (**nx, ny, nz**) and resolution (**dx, dy, dz**), the wind information (**wind_direction, wind_variability**), and the simulation parameters (**duration, random_seed**).
 
 ## Calibration Module
 

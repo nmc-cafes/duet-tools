@@ -10,8 +10,8 @@ A DUET input file is represented by the [`InputFile`](reference.md#duet_tools.in
 from duet_tools import InputFile
 
 input_file = InputFile.create(
-    nx=200, 
-    ny=200, 
+    nx=200,
+    ny=200,
     nz=30,
     duration=5,
     wind_direction=270,
@@ -25,8 +25,8 @@ from pathlib import Path
 from duet_tools import InputFile
 
 input_file = InputFile.create(
-    nx=200, 
-    ny=200, 
+    nx=200,
+    ny=200,
     nz=30,
     duration=5,
     wind_direction=270,
