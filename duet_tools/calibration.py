@@ -248,10 +248,10 @@ class FuelParameter:
     ----------
     parameter : str
         Fuel parameter for which targets should be set. Must be one of "density", "moisture", or "height".
-    fuel_type : str
-        Fuel type to which targets should be set. Must be one of "grass", "litter", or "all".
+    fuel_types : list[str]
+        Fuel type(s) to which targets should be set. Must be any of "grass", "litter", or "all".
     targets : list[Targets]
-        Targets to be set to the provided parameter and fuel type.
+        Targets to be set to the provided parameter and fuel types.
     """
 
     def __init__(self, parameter: str, fuel_types: list[str], targets: list[Targets]):

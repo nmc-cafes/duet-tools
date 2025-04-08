@@ -46,6 +46,8 @@ Because a `Targets` object can be assigned to any fuel parameter and type, the u
 In many situations, fuels data for specific burn units may not be available. LANDFIRE is a national dataset that includes 30m-resoltuion Scott and Burgan 40 Fuel Model (SB40) designations. From these data, values for fuel bulk density, moisture, and height can be derived. The `landfire` module offers a method of querying SB40 LANDFIRE data for a specific burn unit and assigning calibration targets based on those designations.
 
 To use LANDFIRE data, the user must use the [`landfire`](reference.md#duet_tools.landfire) module to query LANDFIRE data (see below). Once data has been queried, the resulting [`LandfireQuery`](reference.md#duet_tools.landfire.LandfireQuery) object is passed to the [`assign_targets_from_sb40`](reference.md#duet_tools.landfire.assign_targets_from_sb40) function. Because LANDFIRE data most often does not follow a normal distribution, the calibration method defaults to "maxmin", and "meansd" is not recommended. Unlike `assign_targets`, which does not specify fuel parameter or type, both must be specified in `assign_targets_from_sb40`. However, the resulting `Targets` object is treated like any other, and must be assigned to the correct fuel parameter and type(s) in `set_fuel_parameter`.
+**NOTE:** the `landfire` module is only available for Python v3.10 and must be installed using `pip install duet-tools[landfire]`
+
 
 ### DuetRun Class
 

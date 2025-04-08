@@ -38,6 +38,8 @@ def read_dat_to_array(
         Number of species
     order : str
         Order of the .dat file. Must be one of "C" or "F". Defaults to "F".
+    dtype : type
+        Data type of the array. Defaults to np.float32
 
     Returns
     -------
@@ -75,7 +77,7 @@ def write_array_to_dat(
     dat_name: str,
     output_dir: Path | str,
     dtype: type = np.float32,
-    reshape: bool = True,
+    reshape: bool = False,
 ) -> None:
     """
     Write a numpy array to a fortran binary file (.dat).

@@ -6,13 +6,14 @@
 
 ## What is duet-tools?
 
-duet-tools is a Python package that provides a convenient interface for programmatically working with the outputs of the DUET program developed by [McDanold et al. (2023)](https://doi.org/10.1016/j.ecolmodel.2023.110425) at Los Alamos National Lab. Central to the package is the ability to calibrate the values in DUET outputs to match targets supplied by the user or national datasets.
+duet-tools is a Python package that provides a convenient interface for programmatically working with the inputs and outputs of the DUET program developed by [McDanold et al. (2023)](https://doi.org/10.1016/j.ecolmodel.2023.110425) at Los Alamos National Lab. Central to the package is the ability to calibrate the values in DUET outputs to match targets supplied by the user or national datasets.
 
 The goals of duet-tools are to:
 
-1. Read in DUET outputs for easy manipulation.
-2. Calibrate DUET outputs by scaling the magnitude of the parameter values while retaining the spatial distributions from DUET.
-3. Provide a platform for the future development of additional tools centered around DUET
+1. Write a DUET input file.
+2. Read in DUET outputs for easy manipulation.
+3. Calibrate DUET outputs by scaling the magnitude of the parameter values while retaining the spatial distributions from DUET.
+4. Provide a platform for the future development of additional tools centered around DUET.
 
 ## Installation
 
@@ -24,6 +25,11 @@ quicfire-tools can be installed using `pip`.
 pip install duet-tools
 ```
 
+To use the [landfire](reference.md#duet_tools.landfire) module, install using the `landfire` extra using `pip`.
+
+```bash
+pip install duet-tools[landfire]
+```
 
 ## Issues
 
