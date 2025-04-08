@@ -38,6 +38,8 @@ def read_dat_to_array(
         Number of species
     order : str
         Order of the .dat file. Must be one of "C" or "F". Defaults to "F".
+    dtype : type
+        Data type of the array. Defaults to np.float32
 
     Returns
     -------
