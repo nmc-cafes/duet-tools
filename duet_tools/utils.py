@@ -77,7 +77,7 @@ def write_array_to_dat(
     dat_name: str,
     output_dir: Path | str,
     dtype: type = np.float32,
-    reshape: bool = True,
+    reshape: bool = False,
 ) -> None:
     """
     Write a numpy array to a fortran binary file (.dat).
