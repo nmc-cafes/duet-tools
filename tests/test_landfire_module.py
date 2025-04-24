@@ -29,7 +29,7 @@ class TestLandfireTargets:
     def test_query_landfire(self):
         sample_aoi = self.get_geojson()
         query = query_landfire(
-            area_of_interest=sample_aoi, directory=TMP_DIR, input_epsg=4326
+            area_of_interest=sample_aoi, year=2019, directory=TMP_DIR, input_epsg=4326
         )
         assert isinstance(query, LandfireQuery)
         assert isinstance(query.fuel_types, np.ndarray)
@@ -37,10 +37,29 @@ class TestLandfireTargets:
         assert isinstance(query.moisture, np.ndarray)
         assert isinstance(query.height, np.ndarray)
 
+    def test_query_landfire_years(self):
+        sample_aoi = self.get_geojson()
+        # Query for 2019 is above. Test 2020...
+        query = query_landfire(
+            area_of_interest=sample_aoi, year=2020, directory=TMP_DIR, input_epsg=4326
+        )
+        # ...and 2022
+        query = query_landfire(
+            area_of_interest=sample_aoi, year=2022, directory=TMP_DIR, input_epsg=4326
+        )
+        # make sure no other years work
+        with pytest.raises(ValueError):
+            query_landfire(
+                area_of_interest=sample_aoi,
+                year=2025,
+                directory=TMP_DIR,
+                input_epsg=4326,
+            )
+
     def test_assign_targets_from_sb40(self):
         sample_aoi = self.get_geojson()
         query = query_landfire(
-            area_of_interest=sample_aoi, directory=TMP_DIR, input_epsg=4326
+            area_of_interest=sample_aoi, year=2019, directory=TMP_DIR, input_epsg=4326
         )
         # test just grass density
         grass_density = assign_targets_from_sb40(query, "grass", "density")
