@@ -91,6 +91,7 @@ class LandfireQuery:
 
 def query_landfire(
     area_of_interest: geojson.Polygon | shapely.Polygon,
+    year: str,
     directory: str | Path,
     input_epsg: int,
     delete_files: bool = True,
@@ -103,10 +104,12 @@ def query_landfire(
     area_of_interest : geojson.Polygon | shapely.Polygon
         Area in which to query LANDFIRE data. For best results, dimensions in meters should
         match (nx*dx, ny*dy) of DUET domain.
+    year : int
+        Year of LANDFIRE data to query. Must be one of [2019, 2020, 2022].
     directory : Path | str
         Directory where files associated with the LANDFIRE query will be saved.
     input_epsg : int
-        EPSG number for CRS of area_of_interest polyong
+        EPSG number for CRS of area_of_interest polygon
     delete_files : bool = True
         Whether to delete intermediate files created in the process of querying LANDFIRE data. Defaults to True
 
@@ -120,12 +123,18 @@ def query_landfire(
     if isinstance(area_of_interest, geojson.Polygon):
         area_of_interest = shapely.Polygon(area_of_interest["coordinates"][0])
 
+    valid_years = [2019, 2020, 2022]
+    if year not in valid_years:
+        raise ValueError(
+            f"SB40 data for year {year} not available. Must be one of {valid_years}"
+        )
+
     if input_epsg != 4236:
         area_of_interest = _reproject_polygon(
             area_of_interest, input_epsg, target_epsg=4326
         )
 
-    _query_landfire(poly=area_of_interest, directory=directory)
+    _query_landfire(poly=area_of_interest, year=year, directory=directory)
     landfire_arr = _landfire_to_array(directory)
 
     # Import SB40 FBFM parameters table
@@ -239,19 +248,25 @@ def assign_targets_from_sb40(
 
 def _query_landfire(
     poly: shapely.Polygon,
+    year: int,
     directory: Path,
 ) -> None:
     """
     Download a grid of SB40 fuel models from Landfire for the unit and convert to a numpy array
     """
 
+    if year == 2019:
+        layer = ["200F40_19"]
+    if year == 2020:
+        layer = ["200F40_20"]
+    if year == 2022:
+        layer = ["220F40_22"]
+
     bbox = get_bbox_from_polygon(aoi_polygon=poly, crs=4326)
 
     # Download Landfire data to output directory
     lf = landfire.Landfire(bbox, output_crs="5070")
-    lf.request_data(
-        layers=["200F40_19"], output_path=Path(directory, "landfire_sb40.zip")
-    )
+    lf.request_data(layers=layer, output_path=Path(directory, "landfire_sb40.zip"))
 
     # Exctract tif from compressed download folder and rename
     with zipfile.ZipFile(Path(directory, "landfire_sb40.zip")) as zf:
