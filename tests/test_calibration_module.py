@@ -15,6 +15,7 @@ from duet_tools.calibration import (
     Targets,
     FuelParameter,
     import_duet,
+    import_duet_from_directory,
     assign_targets,
     set_fuel_parameter,
     set_density,
@@ -73,6 +74,9 @@ class TestDuetRun:
         # test that wrong dimensions raise error
         with pytest.raises(ValueError):
             duet_run = import_duet(directory=DATA_DIR / "v2", nx=333, ny=295, nsp=3)
+
+    def test_import_duet_from_directory(self):
+        duet_run = import_duet_from_directory(directory=DATA_DIR / "v2")
 
     def test_to_numpy(self):
         duet_run = import_duet(directory=DATA_DIR / "v2", nx=333, ny=295, nsp=9)
