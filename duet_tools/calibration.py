@@ -13,6 +13,7 @@ import numpy as np
 
 # Internal Imports
 from duet_tools.utils import read_dat_to_array, write_array_to_dat
+from duet_tools.inputs import InputFile
 
 
 class DuetRun:
@@ -354,6 +355,33 @@ def import_duet(
     )
 
     return DuetRun(density=density, height=height, moisture=moisture)
+
+
+def import_duet_from_directory(directory: Path | str, version: str = "v2") -> DuetRun:
+    """
+    Creates a DuetRun object from DUET output files
+
+    Parameters
+    ----------
+    directory : str | Path
+        Path to directory storing the DUET output files surface_rhof.dat and surface_depth.dat
+        and the DUET input files duet.in and treesspcd.dat
+    version: str
+        DUET version that produced the outputs. Must be one of ["v1","v2"]. Defaults to "v2".
+
+    Returns
+    -------
+    Instance of class DuetRun
+    """
+    if isinstance(directory, str):
+        directory = Path(directory)
+    input_file = InputFile.from_directory(directory)
+    nx = input_file.nx
+    ny = input_file.ny
+    nz = input_file.nz
+    nsp = _read_treesspcd(directory, nx, ny, nz)
+
+    return import_duet(directory, nx, ny, nsp, version)
 
 
 def assign_targets(method: str, **kwargs: float) -> Targets:
@@ -765,3 +793,9 @@ def _density_weighted_average(moisture: np.ndarray, density: np.ndarray) -> np.n
     averaged = np.ma.average(masked, axis=0, weights=weights)
     integrated = np.ma.filled(averaged, 0)
     return integrated
+
+
+def _read_treesspcd(dir: Path, nx: int, ny: int, nz: int) -> int:
+    treesspcd = read_dat_to_array(dir, "treesspcd.dat", nx, ny, nz=nz, dtype=np.int32)
+    nsp = len(np.unique(treesspcd))
+    return nsp  # number of tree species + grass
