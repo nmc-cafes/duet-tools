@@ -121,3 +121,37 @@ class InputFile:
                 f"{self.wind_variability}  ! wind direction variability (in degrees)\n"
             )
             f.write(f"{self.duration}  ! duration of simulation (in years)\n")
+
+    @classmethod
+    def from_directory(cls, dir: Path | str):
+        """
+        Creates an instance of class InputFile from a directory with a DUET input deck
+
+        Parameters
+        ----------
+
+        dir: Path | str
+            Path to the directory containing the DUET input deck.
+
+        Returns
+        -------
+        InputFile
+        """
+        if isinstance(dir, str):
+            dir = Path(dir)
+
+        with open(dir / "duet.in") as f:
+            lines = f.readlines()
+
+        return cls(
+            nx=int(lines[0].strip().split("!")[0]),
+            ny=int(lines[1].strip().split("!")[0]),
+            nz=int(lines[2].strip().split("!")[0]),
+            dx=float(lines[3].strip().split("!")[0]),
+            dy=float(lines[4].strip().split("!")[0]),
+            dz=float(lines[5].strip().split("!")[0]),
+            random_seed=int(lines[6].strip().split("!")[0]),
+            wind_direction=float(lines[7].strip().split("!")[0]),
+            wind_variability=float(lines[8].strip().split("!")[0]),
+            duration=int(lines[9].strip().split("!")[0]),
+        )
