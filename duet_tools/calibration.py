@@ -141,12 +141,12 @@ class DuetRun:
             "separated" : returns a 3D array of shape (nlitter,ny,nx), where the first layer
                 is grass, and the subsequent layers are litter. If using DUET v1, nlitter = 1;
                 if using DUET v2, nlitter is 2 (deciduous and coniferous).
-            "grass" : returns a 3D array of the chosen paramter for grass, with shape (1,ny,nx)
+            "grass" : returns a 3D array of the chosen parameter for grass, with shape (1,ny,nx)
             "litter" : returns a 3D array of integrated litter values for all tree species,
             with shape (1,ny,nx).
-            "deciduous" : returns a 3D array of litter values for deciduous tree species, with
-            shape (1,ny,nx).
             "coniferous" : returns a 3D array of litter values for coniferous tree species, with
+            shape (1,ny,nx).
+            "deciduous" : returns a 3D array of litter values for deciduous tree species, with
             shape (1,ny,nx).
 
         fuel_parameter : str
@@ -167,9 +167,9 @@ class DuetRun:
             return self.__dict__[fuel_parameter][0, :, :].copy()
         if fuel_type == "litter":
             return self._integrate(fuel_parameter[1:, :, :])
-        if fuel_type == "deciduous":
-            return self.__dict__[fuel_parameter][1, :, :].copy()
         if fuel_type == "coniferous":
+            return self.__dict__[fuel_parameter][1, :, :].copy()
+        if fuel_type == "deciduous":
             return self.__dict__[fuel_parameter][2, :, :].copy()
 
     def _integrate(self, fuel_parameter: str) -> np.ndarray:
@@ -288,8 +288,8 @@ class FuelParameter:
     parameter : str
         Fuel parameter for which targets should be set. Must be one of "density", "moisture", or "height".
     fuel_types : list[str]
-        Fuel type(s) to which targets should be set. Must be any of "grass", "litter",
-        "deciduous", "coniferous", or "all".
+        Fuel type(s) to which targets should be set. May be any of "grass", "litter",
+        "coniferous", "deciduous", or "all".
     targets : list[Targets]
         Targets to be set to the provided parameter and fuel types.
     """
@@ -300,7 +300,7 @@ class FuelParameter:
         self.targets = targets
 
     def _validate_fuel_types(self, fuel_types):
-        fueltypes_allowed = ["grass", "litter", "deciduous", "coniferous", "all"]
+        fueltypes_allowed = ["grass", "litter", "coniferous", "deciduous", "all"]
         for fuel_type in fuel_types:
             if fuel_type not in fueltypes_allowed:
                 raise ValueError(
@@ -475,14 +475,21 @@ def set_fuel_parameter(parameter: str, **kwargs: Targets):
         Fuel parameter for which to set targets
     **kwargs : Targets
         grass : Targets
-            Grass calibration targets. Only the grass layer of the DUET bulk
-            density array will be calibrated.
+            Grass calibration targets. Only the grass layer of the DUET parameter
+            array will be calibrated.
         litter : Targets
-            Litter calibration targets. Only the litter layer of the DUET bulk
-            density array will be calibrated.
+            Litter calibration targets. Only the litter layer(s) of the DUET
+            parameter array will be calibrated. Coniferous and deciduous litter will
+            be calibrated together.
+        coniferous : Targets
+            Coniferous litter calibration targets. Only the coniferous litter layer of
+            the DUET parameter array will be calibrated.
+        deciduous : Targets
+            Deciduous litter calibration targets. Only the deciduous litter layer of
+            the DUET parameter array will be calibrated.
         all : Targets
-            Calibration targets for all (both) fuel types. Both layers of the
-            DUET bulk density array will be calibrated together.
+            Calibration targets for all (both) fuel types. All layers of the
+            DUET parameter array will be calibrated together.
 
     Returns
     -------
@@ -504,13 +511,20 @@ def set_density(**kwargs: Targets):
     Parameters
     ----------
     grass : Targets | None
-        Grass bulk density calibration targets. Only the grass layer of the DUET bulk
-        density array will be calibrated.
+        Grass calibration targets. Only the grass layer of the DUET bulk density
+        array will be calibrated.
     litter : Targets | None
-        Litter bulk density calibration targets. Only the litter layer of the DUET bulk
-        density array will be calibrated.
+        Litter calibration targets. Only the litter layer(s) of the DUET
+        bulk density array will be calibrated. Coniferous and deciduous litter will
+        be calibrated together.
+    coniferous : Targets | None
+        Coniferous litter calibration targets. Only the coniferous litter layer of
+        the DUET parameter array will be calibrated.
+    deciduous : Targets | None
+        Deciduous litter calibration targets. Only the deciduous litter layer of
+        the DUET bulk density array will be calibrated.
     all : Targets | None
-        Bulk density calibration targets for all (both) fuel types. Both layers of the
+        Calibration targets for all (both) fuel types. All layers of the
         DUET bulk density array will be calibrated together.
 
     Returns
@@ -533,14 +547,21 @@ def set_moisture(**kwargs: Targets):
     Parameters
     ----------
     grass : Targets | None
-        Grass moisture calibration targets. Only the grass layer of the DUET bulk
-        density array will be calibrated.
+        Grass calibration targets. Only the grass layer of the DUET moisture
+        array will be calibrated.
     litter : Targets | None
-        Litter moisture calibration targets. Only the litter layer of the DUET bulk
-        density array will be calibrated.
+        Litter calibration targets. Only the litter layer(s) of the DUET
+        moisture array will be calibrated. Coniferous and deciduous litter will
+        be calibrated together.
+    coniferous : Targets | None
+        Coniferous litter calibration targets. Only the coniferous litter layer of
+        the DUET parameter array will be calibrated.
+    deciduous : Targets | None
+        Deciduous litter calibration targets. Only the deciduous litter layer of
+        the DUET moisture array will be calibrated.
     all : Targets | None
-        Moisture calibration targets for all (both) fuel types. Both layers of the
-        DUET bulk density array will be calibrated together.
+        Calibration targets for all (both) fuel types. All layers of the
+        DUET moisture array will be calibrated together.
 
     Returns
     -------
@@ -562,14 +583,21 @@ def set_height(**kwargs: Targets):
     Parameters
     ----------
     grass : Targets | None
-        Grass height calibration targets. Only the grass layer of the DUET bulk
-        density array will be calibrated.
+        Grass calibration targets. Only the grass layer of the DUET height
+        array will be calibrated.
     litter : Targets | None
-        Litter height calibration targets. Only the litter layer of the DUET bulk
-        density array will be calibrated.
+        Litter calibration targets. Only the litter layer(s) of the DUET
+        height array will be calibrated. Coniferous and deciduous litter will
+        be calibrated together.
+    coniferous : Targets | None
+        Coniferous litter calibration targets. Only the coniferous litter layer of
+        the DUET parameter array will be calibrated.
+    deciduous : Targets | None
+        Deciduous litter calibration targets. Only the deciduous litter layer of
+        the DUET height array will be calibrated.
     all : Targets | None
-        Height calibration targets for all (both) fuel types. Both layers of the
-        DUET bulk density array will be calibrated together.
+        Calibration targets for all (both) fuel types. All layers of the
+        DUET height array will be calibrated together.
 
     Returns
     -------
@@ -674,23 +702,40 @@ def _get_array_to_calibrate(duet_run: DuetRun, fueltype: str, fuelparam: str):
     if fuelparam == "density":
         if fueltype == "grass":
             return duet_run.density[0, :, :].copy()
-        if fueltype == "litter":
+        if fueltype == "coniferous":
             return duet_run.density[1, :, :].copy()
-        return np.sum(duet_run.density, axis=0)
+        if fueltype == "deciduous":
+            return duet_run.density[2, :, :].copy()
+        if fueltype == "litter":
+            return duet_run.density[1:, :, :].sum(axis=0)
+        else:
+            return np.sum(duet_run.density, axis=0)
     if fuelparam == "height":
         if fueltype == "grass":
             return duet_run.height[0, :, :].copy()
-        if fueltype == "litter":
+        if fueltype == "coniferous":
             return duet_run.height[1, :, :].copy()
-        return np.max(duet_run.height, axis=0)
+        if fueltype == "deciduous":
+            return duet_run.height[2, :, :].copy()
+        if fueltype == "litter":
+            return duet_run.height[1:, :, :].sum(axis=0)
+        else:
+            return np.max(duet_run.height, axis=0)
     if fuelparam == "moisture":
         if fueltype == "grass":
             return duet_run.moisture[0, :, :].copy()
-        if fueltype == "litter":
+        if fueltype == "coniferous":
             return duet_run.moisture[1, :, :].copy()
-        density_weights = duet_run.density.copy()
-        density_weights[density_weights == 0] = 0.01
-        return np.average(duet_run.moisture, weights=density_weights, axis=0)
+        if fueltype == "deciduous":
+            return duet_run.moisture[2, :, :].copy()
+        if fueltype == "litter":
+            return _density_weighted_average(
+                duet_run.moisture[1:, :, :], duet_run.density[1:, :, :]
+            )
+        else:
+            density_weights = duet_run.density.copy()
+            density_weights[density_weights == 0] = 0.01
+            return np.average(duet_run.moisture, weights=density_weights, axis=0)
 
 
 def _duplicate_duet_run(duet_run: DuetRun) -> DuetRun:
