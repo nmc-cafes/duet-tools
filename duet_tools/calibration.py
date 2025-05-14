@@ -10,9 +10,12 @@ import warnings
 
 # External Imports
 import numpy as np
+import pandas as pd
 
 # Internal Imports
 from duet_tools.utils import read_dat_to_array, write_array_to_dat
+
+DATA_DIR = Path(__file__).parent / "data"
 
 
 class DuetRun:
@@ -23,20 +26,32 @@ class DuetRun:
     ----------
     density : np.ndarray
         3D Array of fuel bulk density (kg/m^3) values in the format exported by DUET:
-        Grass bulk denisty in first layer, litter bulk density in second layer.
+        Grass bulk denisty in first layer, litter bulk density for each tree species in
+        subsequent layers.
     moisture : np.ndarray
         3D Array of fuel moisture content (%) values in the format exported by DUET:
-        Grass moisture content in first layer, litter moisture content in second layer.
+        Grass moisture content in first layer, litter moisture content for each tree
+        species in subsequent layers.
     height : np.ndarray
         3D Array of fuel fuel height (m) values in the format exported by DUET:
-        Grass height in first layer, litter depth in second layer.
+        Grass height in first layer, litter depth for each tree species in subsequent
+        layers.
+    duet_version : str
+        DUET version. Must be one of "v1" or "v2".
 
     """
 
-    def __init__(self, density: np.ndarray, height: np.ndarray, moisture: np.ndarray):
+    def __init__(
+        self,
+        density: np.ndarray,
+        height: np.ndarray,
+        moisture: np.ndarray,
+        duet_version: str,
+    ):
         self.density = density
         self.moisture = moisture
         self.height = height
+        self.duet_version = duet_version
 
     def to_quicfire(
         self,
@@ -118,13 +133,22 @@ class DuetRun:
         Parameters
         ----------
         fuel_type : str
-            Fuel type of desired array. Must be one of "grass", "litter", "separated",
-            or "integrated".
-            "separated" : returns a 3D array of shape (2,ny,nx), where the first layer
-                is grass, and the second layer is litter.
-            "integrated" : returns a vertically-integrated array of both fuel types.
-                Array remains 3D, which shape (1,nx,ny). Integration method depends on
+            Fuel type of desired array. Must be one of "integrated, "separated", "grass",
+            "litter", "deciduous", or "coniferous.
+            "integrated" : returns a vertically-integrated array of all fuel types.
+                Array remains 3D, with shape (1,ny,nx). Integration method depends on
                 fuel parameter.
+            "separated" : returns a 3D array of shape (nlitter,ny,nx), where the first layer
+                is grass, and the subsequent layers are litter. If using DUET v1, nlitter = 1;
+                if using DUET v2, nlitter is 2 (deciduous and coniferous).
+            "grass" : returns a 3D array of the chosen paramter for grass, with shape (1,ny,nx)
+            "litter" : returns a 3D array of integrated litter values for all tree species,
+            with shape (1,ny,nx).
+            "deciduous" : returns a 3D array of litter values for deciduous tree species, with
+            shape (1,ny,nx).
+            "coniferous" : returns a 3D array of litter values for coniferous tree species, with
+            shape (1,ny,nx).
+
         fuel_parameter : str
             Fuel parameter of desired array. Must be one of "density", "moisture", or
             "height".
@@ -142,7 +166,11 @@ class DuetRun:
         if fuel_type == "grass":
             return self.__dict__[fuel_parameter][0, :, :].copy()
         if fuel_type == "litter":
+            return self._integrate(fuel_parameter[1:, :, :])
+        if fuel_type == "deciduous":
             return self.__dict__[fuel_parameter][1, :, :].copy()
+        if fuel_type == "coniferous":
+            return self.__dict__[fuel_parameter][2, :, :].copy()
 
     def _integrate(self, fuel_parameter: str) -> np.ndarray:
         if fuel_parameter == "density":
@@ -163,10 +191,21 @@ class DuetRun:
             )
 
     def _validate_fuel_inputs(self, fuel_type: str, fuel_parameter: str):
-        fueltypes_allowed = ["grass", "litter", "separated", "integrated"]
-        if fuel_type not in fueltypes_allowed:
+        fueltypes_allowed = {
+            "v1": ["grass", "litter", "separated", "integrated"],
+            "v2": [
+                "grass",
+                "litter",
+                "separated",
+                "integrated",
+                "deciduous",
+                "coniferous",
+            ],
+        }
+        if fuel_type not in fueltypes_allowed.get(self.duet_version):
             raise ValueError(
-                f"Fuel type {fuel_type} not supported. Must be one of {fueltypes_allowed}"
+                f"Fuel type {fuel_type} not supported for DUET version {self.duet_version}. "
+                f"Must be one of {fueltypes_allowed.get(self.duet_version)}"
             )
         parameters_allowed = ["density", "moisture", "height"]
         if fuel_parameter not in parameters_allowed:
@@ -249,7 +288,8 @@ class FuelParameter:
     parameter : str
         Fuel parameter for which targets should be set. Must be one of "density", "moisture", or "height".
     fuel_types : list[str]
-        Fuel type(s) to which targets should be set. Must be any of "grass", "litter", or "all".
+        Fuel type(s) to which targets should be set. Must be any of "grass", "litter",
+        "deciduous", "coniferous", or "all".
     targets : list[Targets]
         Targets to be set to the provided parameter and fuel types.
     """
@@ -260,7 +300,7 @@ class FuelParameter:
         self.targets = targets
 
     def _validate_fuel_types(self, fuel_types):
-        fueltypes_allowed = ["grass", "litter", "all"]
+        fueltypes_allowed = ["grass", "litter", "deciduous", "coniferous", "all"]
         for fuel_type in fuel_types:
             if fuel_type not in fueltypes_allowed:
                 raise ValueError(
@@ -341,19 +381,62 @@ def import_duet(
         ny=ny,
         nsp=nsp,
     )
-    density = np.zeros((2, ny, nx))
-    height = np.zeros((2, ny, nx))
-    moisture = np.zeros((2, ny, nx))
-    density[0, :, :] = density_nsp[0, :, :]
-    height[0, :, :] = height_nsp[0, :, :]
-    moisture[0, :, :] = moisture_nsp[0, :, :]
-    density[1, :, :] = np.sum(density_nsp[1:, :, :], axis=0)
-    height[1, :, :] = np.sum(height_nsp[1:, :, :], axis=0)
-    moisture[1, :, :] = _density_weighted_average(
-        moisture_nsp[1:, :, :], density_nsp[1:, :, :]
-    )
+    if version == "v1":  # arrays are kept as-is
+        density = density_nsp.copy()
+        height = height_nsp.copy()
+        moisture = moisture_nsp.copy()
+    if version == "v2":
+        density = np.zeros((3, ny, nx))
+        height = np.zeros((3, ny, nx))
+        moisture = np.zeros((3, ny, nx))
+        density[0, :, :] = density_nsp[0, :, :]
+        height[0, :, :] = height_nsp[0, :, :]
+        moisture[0, :, :] = moisture_nsp[0, :, :]
 
-    return DuetRun(density=density, height=height, moisture=moisture)
+        # identify which species are deciduous and coniferous
+        groups = _group_litter_species(directory)
+        coniferous_indices = [i for i, v in groups.items() if v == "coniferous"]
+        deciduous_indices = [i for i, v in groups.items() if v == "deciduous"]
+
+        # for each parameter, coniferous is layer 1, deciduous is layer 2
+        density[1, :, :] = (
+            density_nsp[coniferous_indices].sum(axis=0)
+            if coniferous_indices
+            else np.zeros(density.shape[1:])
+        )
+        density[2, :, :] = (
+            density_nsp[deciduous_indices].sum(axis=0)
+            if deciduous_indices
+            else np.zeros(density.shape[1:])
+        )
+        height[1, :, :] = (
+            height_nsp[coniferous_indices].sum(axis=0)
+            if coniferous_indices
+            else np.zeros(height.shape[1:])
+        )
+        height[2, :, :] = (
+            height_nsp[deciduous_indices].sum(axis=0)
+            if deciduous_indices
+            else np.zeros(height.shape[1:])
+        )
+        moisture[1, :, :] = (
+            _density_weighted_average(
+                moisture_nsp[coniferous_indices], density_nsp[coniferous_indices]
+            )
+            if coniferous_indices
+            else np.zeros(moisture.shape[1:])
+        )
+        moisture[2, :, :] = (
+            _density_weighted_average(
+                moisture_nsp[deciduous_indices], density_nsp[deciduous_indices]
+            )
+            if deciduous_indices
+            else np.zeros(density.shape[1:])
+        )
+
+    return DuetRun(
+        density=density, height=height, moisture=moisture, duet_version=version
+    )
 
 
 def assign_targets(method: str, **kwargs: float) -> Targets:
@@ -765,3 +848,39 @@ def _density_weighted_average(moisture: np.ndarray, density: np.ndarray) -> np.n
     averaged = np.ma.average(masked, axis=0, weights=weights)
     integrated = np.ma.filled(averaged, 0)
     return integrated
+
+
+def _group_litter_species(dir: Path) -> dict:
+    """
+    Returns a dictionary indicating whether the tree species is deciduous
+    or coniferous for each layer in the surface_*_layered.dat files.
+    """
+    ref_species = pd.read_csv(DATA_DIR / "REF_SPECIES.csv")
+    ref_species["Group"] = ref_species["MAJOR_SPGRPCD"].apply(_classify_spgrpcd)
+    lookup_dict = (
+        ref_species.drop_duplicates(subset="SPCD").set_index("SPCD")["Group"].to_dict()
+    )
+
+    with open(dir / "surface_species.dat", "r") as dat:
+        lines = dat.readlines()
+
+    spcd = [int(line.strip()) for line in lines]
+    spcd_dict = {}
+    for i in range(len(spcd)):
+        if spcd[i] is None:
+            raise Exception(
+                f"DUET run contains species with FIA code {spcd[i]} "
+                f"which does not have a valid major species group code"
+            )
+        spcd_dict[i + 1] = lookup_dict.get(spcd[i])
+
+    return spcd_dict
+
+
+def _classify_spgrpcd(code):
+    if code in [1, 2]:
+        return "coniferous"
+    elif code in [3, 4]:
+        return "deciduous"
+    else:
+        return None
