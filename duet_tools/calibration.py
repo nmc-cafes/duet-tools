@@ -106,17 +106,17 @@ class DuetRun:
                 )
         if density:
             if self.density is not None:
-                treesrhof = self._integrate("density")
+                treesrhof = self._integrate_all("density")
                 write_array_to_dat(treesrhof, "treesrhof.dat", directory)
                 written_files.append("treesrhof.dat")
         if moisture:
             if self.moisture is not None:
-                treesmoist = self._integrate("moisture")
+                treesmoist = self._integrate_all("moisture")
                 write_array_to_dat(treesmoist, "treesmoist.dat", directory)
                 written_files.append("treesmoist.dat")
         if height:
             if self.height is not None:
-                treesfueldepth = self._integrate("height")
+                treesfueldepth = self._integrate_all("height")
                 write_array_to_dat(treesfueldepth, "treesfueldepth.dat", directory)
                 written_files.append("treesfueldepth.dat")
         if len(written_files) == 0:
@@ -162,23 +162,33 @@ class DuetRun:
         if fuel_type == "separated":
             return self.__dict__[fuel_parameter].copy()
         if fuel_type == "integrated":
-            return self._integrate(fuel_parameter)
+            return self._integrate_all(fuel_parameter)
         if fuel_type == "grass":
             return self.__dict__[fuel_parameter][0, :, :].copy()
         if fuel_type == "litter":
-            return self._integrate(fuel_parameter[1:, :, :])
+            return self._integrate_litter(fuel_parameter)
         if fuel_type == "coniferous":
             return self.__dict__[fuel_parameter][1, :, :].copy()
         if fuel_type == "deciduous":
             return self.__dict__[fuel_parameter][2, :, :].copy()
 
-    def _integrate(self, fuel_parameter: str) -> np.ndarray:
+    def _integrate_all(self, fuel_parameter: str) -> np.ndarray:
         if fuel_parameter == "density":
             return np.sum(self.density, axis=0)
         if fuel_parameter == "moisture":
             return _density_weighted_average(self.moisture, self.density)
         if fuel_parameter == "height":
             return np.max(self.height, axis=0)
+
+    def _integrate_litter(self, fuel_parameter: str) -> np.ndarray:
+        if fuel_parameter == "density":
+            return np.sum(self.density[1:, :, :], axis=0)
+        if fuel_parameter == "moisture":
+            return _density_weighted_average(
+                self.moisture[1:, :, :], self.density[1:, :, :]
+            )
+        if fuel_parameter == "height":
+            return np.max(self.height[1:, :, :], axis=0)
 
     def _validate_input_moisture(self, moisture: np.ndarray):
         if moisture.shape != self.density.shape:
@@ -750,6 +760,7 @@ def _duplicate_duet_run(duet_run: DuetRun) -> DuetRun:
         density=new_density,
         moisture=new_moisture,
         height=new_height,
+        duet_version=duet_run.duet_version,
     )
 
     return new_duet

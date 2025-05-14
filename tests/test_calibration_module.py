@@ -67,9 +67,9 @@ class TestDuetRun:
         assert isinstance(duet_run.moisture, np.ndarray)
         assert isinstance(duet_run.height, np.ndarray)
         # test array shapes
-        assert duet_run.density.shape == (2, 295, 333)
-        assert duet_run.moisture.shape == (2, 295, 333)
-        assert duet_run.height.shape == (2, 295, 333)
+        assert duet_run.density.shape == (3, 295, 333)
+        assert duet_run.moisture.shape == (3, 295, 333)
+        assert duet_run.height.shape == (3, 295, 333)
         # test that wrong dimensions raise error
         with pytest.raises(ValueError):
             duet_run = import_duet(directory=DATA_DIR / "v2", nx=333, ny=295, nsp=3)
@@ -84,11 +84,20 @@ class TestDuetRun:
         grass_height = duet_run.to_numpy("grass", "height")
         litter_height = duet_run.to_numpy("litter", "height")
         assert np.array_equal(grass_density, duet_run.density[0, :, :])
-        assert np.array_equal(litter_density, duet_run.density[1, :, :])
+        assert np.array_equal(
+            litter_density, np.sum(duet_run.density[1:, :, :], axis=0)
+        )
         assert np.array_equal(grass_moisture, duet_run.moisture[0, :, :])
-        assert np.array_equal(litter_moisture, duet_run.moisture[1, :, :])
+        litter_weights = _maxmin_calibration(duet_run.density[1:, :, :], max=1.0, min=0)
+        litter_weights[litter_weights == 0] = 0.01
+        litter_masked = np.ma.masked_array(
+            duet_run.moisture[1:, :, :], duet_run.moisture[1:, :, :] == 0
+        )
+        litter_averaged = np.ma.average(litter_masked, axis=0, weights=litter_weights)
+        weighted_average_litter_moisture = np.ma.filled(litter_averaged, 0)
+        assert np.array_equal(litter_moisture, weighted_average_litter_moisture)
         assert np.array_equal(grass_height, duet_run.height[0, :, :])
-        assert np.array_equal(litter_height, duet_run.height[1, :, :])
+        assert np.array_equal(litter_height, np.sum(duet_run.height[1:, :, :], axis=0))
         # test integrated and separated
         separated_density = duet_run.to_numpy("separated", "density")
         assert np.array_equal(separated_density, duet_run.density)
@@ -129,13 +138,13 @@ class TestDuetRun:
         )
         treesfueldepth = treesfueldepth[0, :, :]
         assert np.array_equal(
-            treesrhof, duet_run._integrate("density").astype("float32")
+            treesrhof, duet_run._integrate_all("density").astype("float32")
         )
         assert np.array_equal(
-            treesfueldepth, duet_run._integrate("height").astype("float32")
+            treesfueldepth, duet_run._integrate_all("height").astype("float32")
         )
         assert np.array_equal(
-            treesmoist, duet_run._integrate("moisture").astype("float32")
+            treesmoist, duet_run._integrate_all("moisture").astype("float32")
         )
 
         files = ["treesrhof.dat", "treesmoist.dat", "treesfueldepth.dat"]
