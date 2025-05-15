@@ -14,6 +14,9 @@ import pandas as pd
 
 # Internal Imports
 from duet_tools.utils import read_dat_to_array, write_array_to_dat
+from duet_tools.inputs import InputFile
+
+DATA_DIR = Path(__file__).parent / "data"
 
 DATA_DIR = Path(__file__).parent / "data"
 
@@ -332,8 +335,15 @@ class FuelParameter:
         return parameter
 
 
-def import_duet(
-    directory: str | Path, nx: int, ny: int, nsp: int, version: str = "v2"
+def import_duet_manual(
+    directory: str | Path,
+    density_grid_name: str,
+    moisture_grid_name: str,
+    height_grid_name: str,
+    nx: int,
+    ny: int,
+    nsp: int,
+    version: str,
 ) -> DuetRun:
     """
     Creates a DuetRun object from DUET output files
@@ -342,15 +352,21 @@ def import_duet(
     ----------
     directory : str | Path
         Path to directory storing the DUET output files surface_rhof.dat and surface_depth.dat
+    density_grid_name: str
+        File name of bulk density DUET output.
+    moisture_grid_name: str
+        File name of fuel moisture DUET output.
+    height_grid_name: str
+        File name of fuel height DUET output.
     nx: int
-        Number of DUET domain cells in the x-direction
+        Number of DUET domain cells in the x-direction.
     ny: int
-        Number of DUET domain cells in the y-direction
+        Number of DUET domain cells in the y-direction.
     nsp: int
         Number of vegetation species (tree species + grass) in the DUET outputs.
         Must be 2 (grass and litter) for DUET v1.
     version: str
-        DUET version that produced the outputs. Must be one of ["v1","v2"]. Defaults to "v2".
+        DUET version that produced the outputs. Must be one of ["v1","v2"].
 
     Returns
     -------
@@ -364,29 +380,23 @@ def import_duet(
     if isinstance(directory, str):
         directory = Path(directory)
 
-    name_dict = {
-        "rhof": {"v1": "surface_rhof.dat", "v2": "surface_rhof_layered.dat"},
-        "depth": {"v1": "surface_depth.dat", "v2": "surface_depth_layered.dat"},
-        "moist": {"v1": "surface_moist.dat", "v2": "surface_moist_layered.dat"},
-    }
-
     density_nsp = read_dat_to_array(
         directory=directory,
-        filename=name_dict["rhof"].get(version),
+        filename=density_grid_name,
         nx=nx,
         ny=ny,
         nsp=nsp,
     )
     height_nsp = read_dat_to_array(
         directory=directory,
-        filename=name_dict["depth"].get(version),
+        filename=height_grid_name,
         nx=nx,
         ny=ny,
         nsp=nsp,
     )
     moisture_nsp = read_dat_to_array(
         directory=directory,
-        filename=name_dict["moist"].get(version),
+        filename=moisture_grid_name,
         nx=nx,
         ny=ny,
         nsp=nsp,
@@ -446,6 +456,61 @@ def import_duet(
 
     return DuetRun(
         density=density, height=height, moisture=moisture, duet_version=version
+    )
+
+
+def import_duet(directory: Path | str, version: str = "v2") -> DuetRun:
+    """
+    Creates a DuetRun object from DUET input and output files. Assumes all
+    files from a DUET run are present and unaltered. To import a DUET run
+    manually, use `import_duet_manual`.
+
+    Parameters
+    ----------
+    directory : str | Path
+        Path to directory storing the DUET output files surface_rhof.dat and surface_depth.dat
+        and the DUET input files duet.in and treesspcd.dat
+    version: str
+        DUET version that produced the outputs. Must be one of ["v1","v2"]. Defaults to "v2".
+
+    Returns
+    -------
+    Instance of class DuetRun
+    """
+    if isinstance(directory, str):
+        directory = Path(directory)
+
+    supported = ["v1", "v2"]
+    if version not in supported:
+        raise ValueError(
+            f"Version {version} not supported. Please use one of {supported}"
+        )
+
+    input_file = InputFile.from_directory(directory)
+    nx = input_file.nx
+    ny = input_file.ny
+    species_list = _read_surface_species(directory)
+    nsp = len(species_list) + 1  # number of tree species plus grass
+
+    name_dict = {
+        "rhof": {"v1": "surface_rhof.dat", "v2": "surface_rhof_layered.dat"},
+        "depth": {"v1": "surface_depth.dat", "v2": "surface_depth_layered.dat"},
+        "moist": {"v1": "surface_moist.dat", "v2": "surface_moist_layered.dat"},
+    }
+
+    density_grid_name = name_dict["rhof"].get(version)
+    moisture_grid_name = name_dict["moist"].get(version)
+    height_grid_name = name_dict["depth"].get(version)
+
+    return import_duet_manual(
+        directory,
+        density_grid_name,
+        moisture_grid_name,
+        height_grid_name,
+        nx,
+        ny,
+        nsp,
+        version,
     )
 
 
@@ -932,6 +997,20 @@ def _density_weighted_average(moisture: np.ndarray, density: np.ndarray) -> np.n
     integrated = np.ma.filled(averaged, 0)
     return integrated
 
+  
+# def _read_treesspcd(dir: Path, nx: int, ny: int, nz: int) -> int:
+#     """
+#     Interprets number of species from treesspcd.dat. Broken right now.
+#     """
+#     treesspcd = read_dat_to_array(dir, "treesspcd.dat", nx, ny, nz=nz, dtype=np.int32)
+#     nsp = len(np.unique(treesspcd))
+#     return nsp  # number of tree species + grass
+
+
+def _read_surface_species(dir: Path) -> list:
+    with open(dir / "surface_species.dat") as dat:
+        species = dat.readlines()
+    return species
 
 def _group_litter_species(dir: Path) -> dict:
     """
