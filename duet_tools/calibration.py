@@ -650,6 +650,8 @@ def calibrate(
         for i in range(len(fuelparameter.fuel_types)):
             fueltype = fuelparameter.fuel_types[i]
             array_to_calibrate = _get_array_to_calibrate(duet_run, fueltype, fuelparam)
+            if np.sum(array_to_calibrate) == 0:
+                raise ValueError(f"No fuels present for fuel type {fueltype}")
             calibrated_array = _do_calibration(
                 array_to_calibrate, fuelparameter.targets[i]
             )
@@ -844,38 +846,63 @@ def _add_calibrated_array(
         if fuelparam == param:
             if fueltype == "grass":
                 duet_to_calibrate.__dict__[param][0, :, :] = calibrated_array
-            if fueltype == "litter":
+            if fueltype == "coniferous":
                 duet_to_calibrate.__dict__[param][1, :, :] = calibrated_array
+            if fueltype == "deciduous":
+                duet_to_calibrate.__dict__[param][2, :, :] = calibrated_array
+            if fueltype == "litter":
+                duet_to_calibrate.__dict__[param][1:, :, :] = _separate_2d_array(
+                    calibrated_array, param, fueltype, duet_to_calibrate
+                )
             if fueltype == "all":
                 duet_to_calibrate.__dict__[param] = _separate_2d_array(
-                    calibrated_array, param, duet_to_calibrate
+                    calibrated_array, param, fueltype, duet_to_calibrate
                 )
     return duet_to_calibrate
 
 
 def _separate_2d_array(
-    calibrated: np.ndarray, param: str, duet_run: DuetRun
+    calibrated: np.ndarray, param: str, fueltype: str, duet_run: DuetRun
 ) -> np.ndarray:
     """
     Separates a combined array into its component fuel types based on the
     fuel parameter.
     """
-    separated = np.array([calibrated, calibrated])
+    if fueltype == "all":
+        separated = np.zeros(duet_run.density.shape)
+        weights = np.zeros(duet_run.density.shape)
+    if fueltype == "litter":
+        separated = np.zeros(duet_run.density[1:, :, :].shape)
+        weights = np.zeros(duet_run.density[1:, :, :].shape)
     if param == "density":
-        weights = duet_run.density.copy()
-        weights[0, :, :] = duet_run.density[0, :, :] / np.sum(duet_run.density, axis=0)
-        weights[1, :, :] = duet_run.density[1, :, :] / np.sum(duet_run.density, axis=0)
-        separated[0, :, :] = calibrated * weights[0, :, :]
-        separated[1, :, :] = calibrated * weights[1, :, :]
+        for s in range(separated.shape[0]):
+            density = (
+                duet_run.density[1:, :, :] if fueltype == "litter" else duet_run.density
+            )
+            density_sum = np.sum(density, axis=0)
+            weights[s, :, :] = np.where(
+                density_sum != 0, density[s, :, :] / density_sum, 0
+            )
+            separated[s, :, :] = calibrated * weights[s, :, :]
     if param == "moisture":
-        separated[0, :, :][np.where(duet_run.moisture[0, :, :] == 0)] = 0
-        separated[1, :, :][np.where(duet_run.moisture[1, :, :] == 0)] = 0
+        for s in range(duet_run.density.shape[0]):
+            separated[s, :, :][np.where(duet_run.moisture[s, :, :] == 0)] = 0
     if param == "height":
-        weights = duet_run.height.copy()
-        weights[0, :, :] = duet_run.height[0, :, :] / np.max(duet_run.height, axis=0)
-        weights[1, :, :] = duet_run.height[1, :, :] / np.max(duet_run.height, axis=0)
-        separated[0, :, :] = calibrated * weights[0, :, :]
-        separated[1, :, :] = calibrated * weights[1, :, :]
+        for s in range(separated.shape[0]):
+            height = (
+                duet_run.height[1:, :, :] if fueltype == "litter" else duet_run.height
+            )
+            if fueltype == "all":
+                height_max = np.max(height, axis=0)
+                weights[s, :, :] = np.where(
+                    height_max != 0, height[s, :, :] / height_max, 0
+                )
+            if fueltype == "litter":
+                height_sum = np.sum(height, axis=0)
+                weights[s, :, :] = np.where(
+                    height_sum != 0, height[s, :, :] / height_sum, 0
+                )
+            separated[s, :, :] = calibrated * weights[s, :, :]
     return separated
 
 

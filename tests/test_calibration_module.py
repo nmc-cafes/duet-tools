@@ -78,16 +78,26 @@ class TestDuetRun:
         duet_run = import_duet(directory=DATA_DIR / "v2", nx=333, ny=295, nsp=9)
         # test each fuel parameter and type
         grass_density = duet_run.to_numpy("grass", "density")
+        coniferous_density = duet_run.to_numpy("coniferous", "density")
+        deciduous_density = duet_run.to_numpy("deciduous", "density")
         litter_density = duet_run.to_numpy("litter", "density")
         grass_moisture = duet_run.to_numpy("grass", "moisture")
+        coniferous_moisture = duet_run.to_numpy("coniferous", "moisture")
+        deciduous_moisture = duet_run.to_numpy("deciduous", "moisture")
         litter_moisture = duet_run.to_numpy("litter", "moisture")
         grass_height = duet_run.to_numpy("grass", "height")
+        coniferous_height = duet_run.to_numpy("coniferous", "height")
+        deciduous_height = duet_run.to_numpy("deciduous", "height")
         litter_height = duet_run.to_numpy("litter", "height")
         assert np.array_equal(grass_density, duet_run.density[0, :, :])
+        assert np.array_equal(coniferous_density, duet_run.density[1, :, :])
+        assert np.array_equal(deciduous_density, duet_run.density[2, :, :])
         assert np.array_equal(
             litter_density, np.sum(duet_run.density[1:, :, :], axis=0)
         )
         assert np.array_equal(grass_moisture, duet_run.moisture[0, :, :])
+        assert np.array_equal(coniferous_moisture, duet_run.moisture[1, :, :])
+        assert np.array_equal(deciduous_moisture, duet_run.moisture[2, :, :])
         litter_weights = _maxmin_calibration(duet_run.density[1:, :, :], max=1.0, min=0)
         litter_weights[litter_weights == 0] = 0.01
         litter_masked = np.ma.masked_array(
@@ -97,6 +107,8 @@ class TestDuetRun:
         weighted_average_litter_moisture = np.ma.filled(litter_averaged, 0)
         assert np.array_equal(litter_moisture, weighted_average_litter_moisture)
         assert np.array_equal(grass_height, duet_run.height[0, :, :])
+        assert np.array_equal(coniferous_height, duet_run.height[1, :, :])
+        assert np.array_equal(deciduous_height, duet_run.height[2, :, :])
         assert np.array_equal(litter_height, np.sum(duet_run.height[1:, :, :], axis=0))
         # test integrated and separated
         separated_density = duet_run.to_numpy("separated", "density")
@@ -240,6 +252,7 @@ class TestCalibrate:
         assert np.allclose(calibrated_duet.height, duet_run.height)
         assert np.allclose(calibrated_duet.density, duet_run.density) == False
         assert np.allclose(calibrated_duet.density[1, :, :], duet_run.density[1, :, :])
+        assert np.allclose(calibrated_duet.density[2, :, :], duet_run.density[2, :, :])
         assert np.max(calibrated_duet.density[0, :, :]) == 1.0
         assert np.min(calibrated_duet.density[0, :, :]) == 0.2
         # try density and height
@@ -267,7 +280,36 @@ class TestCalibrate:
         assert np.allclose(calibrated_duet.height, duet_run.height)
         assert np.allclose(calibrated_duet.density, duet_run.density) == False
         assert np.max(calibrated_duet.density[0, :, :]) == 1.0
+        assert np.max(calibrated_duet.density[1:, :, :]) == 0.1
+
+        # try with three fueltypes
+        coniferous_density = assign_targets(method="maxmin", max=0.1, min=0.01)
+        deciduous_density = assign_targets(method="maxmin", max=0.5, min=0.2)
+        density_targets = set_fuel_parameter(
+            parameter="density",
+            coniferous=coniferous_density,
+            deciduous=deciduous_density,
+            grass=grass_density,
+        )
+        # there is no deciduous litter, so it will throw an error
+        with pytest.raises(ValueError):
+            calibrated_duet = calibrate(
+                duet_run, fuel_parameter_targets=density_targets
+            )
+        # now without deciduous litter targets
+        density_targets = set_fuel_parameter(
+            parameter="density",
+            coniferous=coniferous_density,
+            grass=grass_density,
+        )
+        calibrated_duet = calibrate(duet_run, fuel_parameter_targets=density_targets)
+        assert isinstance(calibrated_duet, DuetRun)
+        assert isinstance(calibrated_duet.density, np.ndarray)
+        assert np.allclose(calibrated_duet.height, duet_run.height)
+        assert np.allclose(calibrated_duet.density, duet_run.density) == False
+        assert np.max(calibrated_duet.density[0, :, :]) == 1.0
         assert np.max(calibrated_duet.density[1, :, :]) == 0.1
+        assert np.max(calibrated_duet.density[2, :, :]) == 0
 
     def test_calibrate_meansd(self):
         # try 1 fueltype and 1 parameter
@@ -279,7 +321,9 @@ class TestCalibrate:
         assert isinstance(calibrated_duet.density, np.ndarray)
         assert np.allclose(calibrated_duet.height, duet_run.height)
         assert np.allclose(calibrated_duet.density, duet_run.density) == False
-        assert np.allclose(calibrated_duet.density[1, :, :], duet_run.density[1, :, :])
+        assert np.allclose(
+            calibrated_duet.density[1:, :, :], duet_run.density[1:, :, :]
+        )
         assert math.isclose(
             np.mean(calibrated_duet.density[0, :, :]), np.float32(0.6), abs_tol=10**-6
         )
@@ -305,6 +349,38 @@ class TestCalibrate:
         assert np.allclose(calibrated_duet.height, duet_run.height)
         assert np.allclose(calibrated_duet.density, duet_run.density) == False
 
+        # try with three fueltypes
+        coniferous_density = assign_targets(method="meansd", mean=0.1, sd=0.03)
+        deciduous_density = assign_targets(method="meansd", mean=0.5, sd=0.2)
+        density_targets = set_fuel_parameter(
+            parameter="density",
+            coniferous=coniferous_density,
+            deciduous=deciduous_density,
+            grass=grass_density,
+        )
+        # there is no deciduous litter, so it will throw an error
+        with pytest.raises(ValueError):
+            calibrated_duet = calibrate(
+                duet_run, fuel_parameter_targets=density_targets
+            )
+        # now without deciduous litter targets
+        density_targets = set_fuel_parameter(
+            parameter="density",
+            coniferous=coniferous_density,
+            grass=grass_density,
+        )
+        calibrated_duet = calibrate(duet_run, fuel_parameter_targets=density_targets)
+        assert isinstance(calibrated_duet, DuetRun)
+        assert isinstance(calibrated_duet.density, np.ndarray)
+        assert np.allclose(calibrated_duet.height, duet_run.height)
+        assert np.allclose(calibrated_duet.density, duet_run.density) == False
+        assert math.isclose(
+            np.mean(calibrated_duet.density[0, :, :]), np.float32(0.6), abs_tol=10**-6
+        )
+        assert math.isclose(
+            np.std(calibrated_duet.density[0, :, :]), np.float32(0.3), abs_tol=10**-6
+        )
+
     def test_constant_calibration(self):
         duet_run = import_duet(DATA_DIR / "v2", 295, 333, 9)
         grass_height = assign_targets(method="constant", value=0.5)
@@ -323,7 +399,7 @@ class TestCalibrate:
         )
         assert math.isclose(
             np.mean(
-                calibrated_duet.height[1, :, :][calibrated_duet.height[1, :, :] > 0]
+                calibrated_duet.height[1:, :, :][calibrated_duet.height[1:, :, :] > 0]
             ),
             np.float32(0.05),
             abs_tol=10**-6,
@@ -358,8 +434,8 @@ class TestCalibrate:
             np.float32(0.15),
             abs_tol=10**-6,
         )
-        # then assert that a) the density array has two layers, and b) the overall max and min matches
-        assert calibrated_duet.density.shape[0] == 2
+        # then assert that a) the density array has three layers, and b) the overall max and min matches
+        assert calibrated_duet.density.shape[0] == 3
         assert np.max(np.sum(calibrated_duet.density, axis=0)) == np.float32(2.0)
         assert np.min(np.sum(calibrated_duet.density, axis=0)) == np.float32(0.5)
 
