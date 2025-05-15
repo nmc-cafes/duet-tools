@@ -45,21 +45,36 @@ DUET output files can be calibrated to match user-provided or data-derived range
 
 ### How to import DUET output files
 
-DUET output files can be read in using the [`import_duet`](reference.md#duet_tools.calibration.import_duet) function.
+DUET output files can be read in using the [`import_duet`](reference.md#duet_tools.calibration.import_duet) function. This function assumes that all input and output files used and exported by DUET are present in the provided directory. To import DUET outputs, simply specify the path to their directory and the version of DUET used to produce the outputs. The resulting object is of class [`DuetRun`](reference.md#duet_tools.calibration.DuetRun).
 
 ```python
 from duet_tools.calibration import import_duet
-```
 
-To import DUET outputs, simply specify the path to their directory, and the x and y dimensions of the domain. The resulting object is of class [`DuetRun`](reference.md#duet_tools.calibration.DuetRun).
+duet_path = "path/to/duet/files"
+duet_run = import_duet(directory=duet_path, version="v2")
+```
+- **directory** is the path to the DUET output files.
+- **version** specifies the verision of DUET that was used.
+
+If DUET input files are not present, or if output file names do not follow DUET convention, the alternate function[`import_duet_manual`](reference.md#duet_tools.calibration.import_duet_manual) may be used instead. Additional arguments include the names of the necessary DUET output files and the dimension sizes of the arrays.
 
 ```python
-duet_path = "path/to/duet/files"
-duet_run = import_duet(directory=duet_path,nx=200,ny=200)
-```
+from duet_tools.calibration import import_duet_manual
 
+duet_path = "path/to/duet/files"
+duet_run = import_duet_manual(directory=duet_path,
+                              density_grid_name="rhof.dat",
+                              moisture_grid_name="moist.dat",
+                              height_grid_name="depth.dat",
+                              nx = 200,
+                              ny = 200,
+                              nsp = 5,
+                              version="v2")
+```
+- **density_grid_name**, **moisture_grid_name**, and **height_grid_name** are the file names of the three required DUET output arrays.
 - **nx** and **ny** define the number of cells in the x and y direction of the DUET grid.
-- **directory** is the path to the DUET output files.
+- **nsp** defines the number of separate fuel layers output by DUET. For DUET version 2, this is the tree species in the DUET input files, plus grass. For DUET version 1, this is always 2 (grass and litter).
+
 
 ### How to calibrate DUET outputs to target ranges and/or distributions
 

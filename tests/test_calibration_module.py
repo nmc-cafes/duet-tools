@@ -15,7 +15,7 @@ from duet_tools.calibration import (
     Targets,
     FuelParameter,
     import_duet,
-    import_duet_from_directory,
+    import_duet_manual,
     assign_targets,
     set_fuel_parameter,
     set_density,
@@ -35,8 +35,15 @@ DATA_DIR = TEST_DIR / "test-data"
 
 class TestDuetRun:
     def test_import_duet_v1(self):
-        duet_run = import_duet(
-            directory=DATA_DIR / "v1", nx=976, ny=1998, nsp=2, version="v1"
+        duet_run = import_duet_manual(
+            directory=DATA_DIR / "v1",
+            density_grid_name="surface_rhof.dat",
+            moisture_grid_name="surface_moist.dat",
+            height_grid_name="surface_depth.dat",
+            nx=976,
+            ny=1998,
+            nsp=2,
+            version="v1",
         )
         # test that data types are correct
         assert isinstance(duet_run, DuetRun)
@@ -49,21 +56,54 @@ class TestDuetRun:
         assert duet_run.height.shape == (2, 1998, 976)
         # test that wrong dimensions raises error
         with pytest.raises(ValueError):
-            duet_run = import_duet(
-                directory=DATA_DIR / "v1", nx=976, ny=1998, nsp=3, version="v1"
+            duet_run = import_duet_manual(
+                directory=DATA_DIR / "v1",
+                density_grid_name="surface_rhof.dat",
+                moisture_grid_name="surface_moist.dat",
+                height_grid_name="surface_depth.dat",
+                nx=976,
+                ny=1998,
+                nsp=3,
+                version="v1",
             )
         # test that wrong version number raises error
         with pytest.raises(ValueError):
-            duet_run = import_duet(
-                directory=DATA_DIR / "v1", nx=976, ny=1998, nsp=2, version="v3"
+            duet_run = import_duet_manual(
+                directory=DATA_DIR / "v1",
+                density_grid_name="surface_rhof.dat",
+                moisture_grid_name="surface_moist.dat",
+                height_grid_name="surface_depth.dat",
+                nx=976,
+                ny=1998,
+                nsp=2,
+                version="v3",
             )
 
     def test_import_duet_v2(self):
-        duet_run = import_duet(
-            directory=DATA_DIR / "v2", nx=333, ny=295, nsp=9, version="v2"
-        )
-        # test that data types are correct
+        duet_run = import_duet(directory=DATA_DIR / "v2")
         assert isinstance(duet_run, DuetRun)
+        # test that data types are correct
+        assert isinstance(duet_run.density, np.ndarray)
+        assert isinstance(duet_run.moisture, np.ndarray)
+        assert isinstance(duet_run.height, np.ndarray)
+        # test array shapes
+        assert duet_run.density.shape == (3, 295, 333)
+        assert duet_run.moisture.shape == (3, 295, 333)
+        assert duet_run.height.shape == (3, 295, 333)
+
+    def test_import_duet_v2_manual(self):
+        duet_run = import_duet_manual(
+            directory=DATA_DIR / "v2",
+            density_grid_name="surface_rhof_layered.dat",
+            moisture_grid_name="surface_moist_layered.dat",
+            height_grid_name="surface_depth_layered.dat",
+            nx=333,
+            ny=295,
+            nsp=9,
+            version="v2",
+        )
+        assert isinstance(duet_run, DuetRun)
+        # test that data types are correct
         assert isinstance(duet_run.density, np.ndarray)
         assert isinstance(duet_run.moisture, np.ndarray)
         assert isinstance(duet_run.height, np.ndarray)
@@ -73,13 +113,19 @@ class TestDuetRun:
         assert duet_run.height.shape == (3, 295, 333)
         # test that wrong dimensions raise error
         with pytest.raises(ValueError):
-            duet_run = import_duet(directory=DATA_DIR / "v2", nx=333, ny=295, nsp=3)
-
-    def test_import_duet_from_directory(self):
-        duet_run = import_duet_from_directory(directory=DATA_DIR / "v2")
+            duet_run = import_duet_manual(
+                directory=DATA_DIR / "v2",
+                density_grid_name="surface_rhof.dat",
+                moisture_grid_name="surface_moist.dat",
+                height_grid_name="surface_depth.dat",
+                nx=333,
+                ny=295,
+                nsp=3,
+                version="v2",
+            )
 
     def test_to_numpy(self):
-        duet_run = import_duet(directory=DATA_DIR / "v2", nx=333, ny=295, nsp=9)
+        duet_run = import_duet(directory=DATA_DIR / "v2")
         # test each fuel parameter and type
         grass_density = duet_run.to_numpy("grass", "density")
         coniferous_density = duet_run.to_numpy("coniferous", "density")
@@ -130,7 +176,7 @@ class TestDuetRun:
         assert np.array_equal(integrated_moisture, weighted_average_moisture)
 
     def test_to_quicfire(self):
-        duet_run = import_duet(directory=DATA_DIR / "v2", nx=333, ny=295, nsp=9)
+        duet_run = import_duet(directory=DATA_DIR / "v2")
         duet_run.to_quicfire(TMP_DIR, overwrite=True)
         with pytest.raises(FileExistsError):
             duet_run.to_quicfire(TMP_DIR)
@@ -247,7 +293,7 @@ class TestSetFuelParameter:
 class TestCalibrate:
     def test_calibrate_maxmin(self):
         # try 1 fueltype and 1 parameter
-        duet_run = import_duet(DATA_DIR / "v2", 295, 333, 9)
+        duet_run = import_duet(DATA_DIR / "v2")
         grass_density = assign_targets(method="maxmin", max=1.0, min=0.2)
         density_targets = set_fuel_parameter(parameter="density", grass=grass_density)
         calibrated_duet = calibrate(duet_run, fuel_parameter_targets=density_targets)
@@ -317,7 +363,7 @@ class TestCalibrate:
 
     def test_calibrate_meansd(self):
         # try 1 fueltype and 1 parameter
-        duet_run = import_duet(DATA_DIR / "v2", 295, 333, 9)
+        duet_run = import_duet(DATA_DIR / "v2")
         grass_density = assign_targets(method="meansd", mean=0.6, sd=0.3)
         density_targets = set_fuel_parameter(parameter="density", grass=grass_density)
         calibrated_duet = calibrate(duet_run, fuel_parameter_targets=density_targets)
@@ -386,7 +432,7 @@ class TestCalibrate:
         )
 
     def test_constant_calibration(self):
-        duet_run = import_duet(DATA_DIR / "v2", 295, 333, 9)
+        duet_run = import_duet(DATA_DIR / "v2")
         grass_height = assign_targets(method="constant", value=0.5)
         litter_height = assign_targets(method="constant", value=0.05)
         height_targets = set_fuel_parameter(
@@ -410,7 +456,7 @@ class TestCalibrate:
         )
 
     def test_fueltype_all(self):
-        duet_run = import_duet(DATA_DIR / "v2", 295, 333, 9)
+        duet_run = import_duet(DATA_DIR / "v2")
         density = assign_targets(method="maxmin", max=2.0, min=0.5)
         grass_height = assign_targets(method="constant", value=0.75)
         litter_height = assign_targets(method="constant", value=0.15)
