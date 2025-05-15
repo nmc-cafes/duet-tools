@@ -70,7 +70,8 @@ First, make [`Targets`](reference.md#duet_tools.calibration.Targets) objects for
 from duet_tools.calibrattion import assign_targets, set_fuel_parameter, calibrate
 
 grass_density = assign_targets(method="maxmin", max=1.0, min=0.1)
-litter_density = assign_targets(method="meansd", mean=0.6, sd=0.1)
+coniferous_density = assign_targets(method="meansd", mean=0.6, sd=0.1)
+deciduous_density = assign_targets(method="meansd", mean=0.8, sd=0.2)
 grass_height = assign_targets(method="constant", value=0.75)
 litter_height = assign_targets(method="constant", value=0.2)
 ```
@@ -81,7 +82,10 @@ Once any number of `Targets` objects are created, they are used to set the targe
 
 ```python
 density_targets = set_fuel_parameter(
-    parameter="density", grass=grass_density, litter=litter_density
+    parameter="density", 
+    grass=grass_density, 
+    coniferous = coniferous_density, 
+    deciduous=deciduous_density,
 )
 height_targets = set_fuel_parameter(
     parameter="height", grass=grass_height, litter=litter_height
@@ -89,7 +93,7 @@ height_targets = set_fuel_parameter(
 ```
 - **parameter** can be one of `"density"`, `"height"`, or `"moisture"`. A `FuelParameter` object represents only one of thes parameters.
 
-- **keyword arguments** specify which fuel type(s) should be set for a given parameter. To set fuel types individually, use either or both of **grass** and **litter**. If you have targets that apply to all fuel types, rather than litter or grass separately, simply use the **all** keyword argument.
+- **keyword arguments** specify which fuel type(s) should be set for a given parameter. To set fuel types individually, use any of **grass**, **coniferous**, and/or **deciduous**. To set coniferous and deciduous litter together, use **litter**. If you have targets that apply to all fuel types, rather than litter or grass separately, simply use the **all** keyword argument.
 
 ```python
 all_density = assign_targets(method="maxmin", max= 1.0, min=0.1)
@@ -140,7 +144,9 @@ landfire_query = query_landfire(
 - **input_epsg** is the EPSG code for the coordinate reference system and projects of the area of interest polygon.
 - **delete_files** specifies whether or not to delete to files downloaded from the LANDFIRE website. Since the files are usually not needed after the `LandfireQuery` object is returned, it defaults to True.
 
-Once LANDFIRE data is queried, targets can be assigned for whatever fuel parameters and types the user desires using [`assign_targets_from_sb40`](reference.md#duet_tools.landfire.assign_targets_from_sb40). Unlike `assign_targets`, the fuel parameter and fuel type must be specified for targets to be assigned.
+Once LANDFIRE data is queried, targets can be assigned for whatever fuel parameters and types the user desires using [`assign_targets_from_sb40`](reference.md#duet_tools.landfire.assign_targets_from_sb40). Unlike `assign_targets`, the fuel parameter and fuel type must be specified for targets to be assigned. 
+
+*NOTE: Coniferous and deciduous litter targets cannot be defined separately from LANDFIRE. Use `litter` and/ore `grass` only*
 
 ```python
 from duet_tools.landfire import assign_targets_from_sb40
@@ -184,7 +190,7 @@ integrated_density = calibrated_duet.to_numpy(
 ) #2D array of grass and litter
 separated_density = calibrated_duet.to_numpy(
     fuel_type="separated", fuel_parameter="height
-) #3D array where grass is z-layer 0 and litter is z-layer 1
+) #3D array where grass is z-layer 0, coniferous litter is z-layer 1, and deciduous litter is z-layer 2
 ```
 
 ### How to export quicfire .dat files from calibrated DUET outputs
