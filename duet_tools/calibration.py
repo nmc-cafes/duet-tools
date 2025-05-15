@@ -18,6 +18,8 @@ from duet_tools.inputs import InputFile
 
 DATA_DIR = Path(__file__).parent / "data"
 
+DATA_DIR = Path(__file__).parent / "data"
+
 
 class DuetRun:
     """
@@ -995,7 +997,7 @@ def _density_weighted_average(moisture: np.ndarray, density: np.ndarray) -> np.n
     integrated = np.ma.filled(averaged, 0)
     return integrated
 
-
+  
 # def _read_treesspcd(dir: Path, nx: int, ny: int, nz: int) -> int:
 #     """
 #     Interprets number of species from treesspcd.dat. Broken right now.
@@ -1009,7 +1011,6 @@ def _read_surface_species(dir: Path) -> list:
     with open(dir / "surface_species.dat") as dat:
         species = dat.readlines()
     return species
-
 
 def _group_litter_species(dir: Path) -> dict:
     """
