@@ -17,11 +17,20 @@ def read_file(fname):
 
 
 def get_version():
-    """Get the version number."""
-    url = "https://api.github.com/repos/nmc-cafes/duet-tools/releases/latest"
+    """Get the most recent tag (including pre-releases)."""
+    import requests
+
+    url = "https://api.github.com/repos/nmc-cafes/duet-tools/releases"
     response = requests.get(url)
     response.raise_for_status()
-    version = response.json()["tag_name"]
+    releases = response.json()
+
+    if not releases:
+        raise ValueError("No releases found on GitHub.")
+
+    # Use the most recently published release (pre or not)
+    releases.sort(key=lambda r: r["created_at"], reverse=True)
+    version = releases[0]["tag_name"]
     return version[1:]  # Remove the leading "v" from the version number
 
 
