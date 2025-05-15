@@ -378,8 +378,8 @@ def import_duet_from_directory(directory: Path | str, version: str = "v2") -> Du
     input_file = InputFile.from_directory(directory)
     nx = input_file.nx
     ny = input_file.ny
-    nz = input_file.nz
-    nsp = _read_treesspcd(directory, nx, ny, nz)
+    species_list = _read_surface_species(directory)
+    nsp = len(species_list) + 1  # number of tree species plus grass
 
     return import_duet(directory, nx, ny, nsp, version)
 
@@ -795,7 +795,16 @@ def _density_weighted_average(moisture: np.ndarray, density: np.ndarray) -> np.n
     return integrated
 
 
-def _read_treesspcd(dir: Path, nx: int, ny: int, nz: int) -> int:
-    treesspcd = read_dat_to_array(dir, "treesspcd.dat", nx, ny, nz=nz, dtype=np.int32)
-    nsp = len(np.unique(treesspcd))
-    return nsp  # number of tree species + grass
+# def _read_treesspcd(dir: Path, nx: int, ny: int, nz: int) -> int:
+#     """
+#     Interprets number of species from treesspcd.dat. Broken right now.
+#     """
+#     treesspcd = read_dat_to_array(dir, "treesspcd.dat", nx, ny, nz=nz, dtype=np.int32)
+#     nsp = len(np.unique(treesspcd))
+#     return nsp  # number of tree species + grass
+
+
+def _read_surface_species(dir: Path) -> list:
+    with open(dir / "surface_species.dat") as dat:
+        species = dat.readlines()
+    return species
