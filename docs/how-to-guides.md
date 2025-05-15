@@ -82,9 +82,9 @@ Once any number of `Targets` objects are created, they are used to set the targe
 
 ```python
 density_targets = set_fuel_parameter(
-    parameter="density", 
-    grass=grass_density, 
-    coniferous = coniferous_density, 
+    parameter="density",
+    grass=grass_density,
+    coniferous = coniferous_density,
     deciduous=deciduous_density,
 )
 height_targets = set_fuel_parameter(
@@ -144,7 +144,7 @@ landfire_query = query_landfire(
 - **input_epsg** is the EPSG code for the coordinate reference system and projects of the area of interest polygon.
 - **delete_files** specifies whether or not to delete to files downloaded from the LANDFIRE website. Since the files are usually not needed after the `LandfireQuery` object is returned, it defaults to True.
 
-Once LANDFIRE data is queried, targets can be assigned for whatever fuel parameters and types the user desires using [`assign_targets_from_sb40`](reference.md#duet_tools.landfire.assign_targets_from_sb40). Unlike `assign_targets`, the fuel parameter and fuel type must be specified for targets to be assigned. 
+Once LANDFIRE data is queried, targets can be assigned for whatever fuel parameters and types the user desires using [`assign_targets_from_sb40`](reference.md#duet_tools.landfire.assign_targets_from_sb40). Unlike `assign_targets`, the fuel parameter and fuel type must be specified for targets to be assigned.
 
 *NOTE: Coniferous and deciduous litter targets cannot be defined separately from LANDFIRE. Use `litter` and/ore `grass` only*
 
