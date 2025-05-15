@@ -8,7 +8,7 @@ The [`calibration`](reference.md#duet_tools.calibration) module in `duet-tools` 
 
 ### Working with DUET
 
-The `duet-tools` package assumes that the user has a license and acces to the DUET program, developed by Los Alamos National Lab. DUET distributes surface fuels based on the locations of tree canopies, the prevailing wind direction, and the time since fire. The user is responsible for parameterizing and running DUET; all calibibration in `duet-tools` is done post-hoc. By default, DUET will output two files called *surface_rhof.dat* and *surface_depth.dat*, which are Fortran-formatted arrays representing the surface fuel bulk density and surface fuel height. They are 3D arrays where the first z layer (axis 0) is represents grass density/moisture/height, and the next two layers represent coniferous and deciduous tree litter, respectively.
+The `duet-tools` package assumes that the user has a license and acces to the DUET program, developed by Los Alamos National Lab. DUET distributes surface fuels based on the locations of tree canopies, the prevailing wind direction, and the time since fire. The user is responsible for parameterizing and running DUET; all calibibration in `duet-tools` is done post-hoc. By default, DUET will output two files called *surface_rhof.dat* and *surface_depth.dat*, which are Fortran-formatted arrays representing the surface fuel loading (bulk density) and surface fuel depth. They are 3D arrays where the first z layer (axis 0) is represents grass loading/moisture/depth, and the next two layers represent coniferous and deciduous tree litter, respectively.
 
 The [`import_duet`](reference.md#duet_tools.calibration.import_duet) function assumes that DUET input and output files are present in the given directory, and that they have not been renamed or altered. Alternatively, the user may import duet arrays manually by providing file names and array sizes for the necessary DUET outputs using [`import_duet_manual`](reference.md#duet_tools.calibration.import_duet_manual). Once DUET output files are imported, the resulting [`DuetRun`](reference.md#duet_tools.calibration.DuetRun) object stores and orgainzes the arrays for all subsequent manipulations.
 
@@ -25,11 +25,11 @@ Specifying methods and target values in `assign_targets` creates an instance of 
 
 ### Fuel Types and Parameters
 
-Fuels are described in QUIC-Fire and FIRETEC using different *parameters* that affect fire behavior. The main parameters are fuel *bulk density*, fuel *moisture*, and *height* of the surface fuels. DUET distributes bulk density and height, but does not output fuel moisture.
+Fuels are described in QUIC-Fire and FIRETEC using different *parameters* that affect fire behavior. The main parameters are fuel *loading*, fuel *moisture*, and fuelbed *depth* of the surface fuels. DUET distributes fuel loading and depth. DUET version 1 does not output fuel moisture.
 
 These parameters are described for two *fuel types* in DUET: leaf/needle litter, which is stochastically distributed near tree canopies, and grass, which is more likely to "grow" in more open areas between tree canopies. DUET outputs separate arrays for each fuel parameter, with layers representing grass and litter fuel types.
 
-`duet-tools` can calibrate any combination of fuel type and parameter with methods and targets contained in a `Targets` class object. The `Targets` class is agnostic of both fuel type and fuel parameter, and can thus be assigned to any number of fuel types and parameters. The [`FuelParameter`](reference.md#duet_tools.calibration.FuelParameter) class represents a single fuel parameter (*e.g.* bulk density), storing and validating all assigned `Targets`.
+`duet-tools` can calibrate any combination of fuel type and parameter with methods and targets contained in a `Targets` class object. The `Targets` class is agnostic of both fuel type and fuel parameter, and can thus be assigned to any number of fuel types and parameters. The [`FuelParameter`](reference.md#duet_tools.calibration.FuelParameter) class represents a single fuel parameter (*e.g.* fuel loading), storing and validating all assigned `Targets`.
 
 A `FuelParameter` class instance is created using the [`set_fuel_parameter`](reference.md#duet_tools.calibration.set_fuel_parameter) function. The parameter to be calibrated is specified, and the `Targets` objects are supplied to whichever fuel type they are meant to calibrate. Grass, coniferous litter, and deciduous litter can be calibrated individually, separately by specifying them as separate arguments, or together by using the argument *all* or *litter* (they can optionally be separated back into their component fuel types after calibration).
 
@@ -41,7 +41,7 @@ Because a `Targets` object can be assigned to any fuel parameter and type, the u
 
 ### Using LANDFIRE Targets
 
-In many situations, fuels data for specific burn units may not be available. LANDFIRE is a national dataset that includes 30m-resoltuion Scott and Burgan 40 Fuel Model (SB40) designations. From these data, values for fuel bulk density, moisture, and height can be derived. The `landfire` module offers a method of querying SB40 LANDFIRE data for a specific burn unit and assigning calibration targets based on those designations.
+In many situations, fuels data for specific burn units may not be available. LANDFIRE is a national dataset that includes 30m-resoltuion Scott and Burgan 40 Fuel Model (SB40) designations. From these data, values for fuel loading, moisture, and depth can be derived. The `landfire` module offers a method of querying SB40 LANDFIRE data for a specific burn unit and assigning calibration targets based on those designations.
 
 To use LANDFIRE data, the user must use the [`landfire`](reference.md#duet_tools.landfire) module to query LANDFIRE data (see below). Once data has been queried, the resulting [`LandfireQuery`](reference.md#duet_tools.landfire.LandfireQuery) object is passed to the [`assign_targets_from_sb40`](reference.md#duet_tools.landfire.assign_targets_from_sb40) function. Because LANDFIRE data most often does not follow a normal distribution, the calibration method defaults to "maxmin", and "meansd" is not recommended. Unlike `assign_targets`, which does not specify fuel parameter or type, both must be specified in `assign_targets_from_sb40`. However, the resulting `Targets` object is treated like any other, and must be assigned to the correct fuel parameter and type(s) in `set_fuel_parameter`.
 **NOTE:** the `landfire` module is only available for Python v3.10 and must be installed using `pip install duet-tools[landfire]`
@@ -49,7 +49,7 @@ To use LANDFIRE data, the user must use the [`landfire`](reference.md#duet_tools
 
 ### DuetRun Class
 
-The [`DuetRun`](reference.md#duet_tools.calibration.DuetRun) class is instantiated using the `import_duet` function. It's three attributes correspond to the 3D fuel parameter arrays that may be calibrated: `density`, `moisture`, and `height`.
+The [`DuetRun`](reference.md#duet_tools.calibration.DuetRun) class is instantiated using the `import_duet` function. It's three attributes correspond to the 3D fuel parameter arrays that may be calibrated: `loading`, `moisture`, and `depth`.
 
 #### Pre-Calibration
 
@@ -67,7 +67,7 @@ The [`to_quicfire`](reference.md#duet_tools.calibration.DuetRun.to_quicfire) met
 
 The [`Landfire`](reference.md#duet_tools.landfire) module is an auxiliary module handling the interfacing and processing of LANDFIRE data. Data is queried using the [`query_landfire`](reference.md#duet_tools.landfire.query_landfire) function by providing spatial data and information for the area of interest. An instance of class [`LandfireQuery`](reference.md#duet_tools.landfire.LandfireQuery) is returned, which can be provided to `assign_targets_from_sb40` in the `calibration` module.
 
-Values for fuel bulk density, fuel moisture, and surface fuel height are derived from Scott and Burgan 40 Fuel Model designations, using methods developed for FastFuels (citation). These data are available at a 30x30m resolution for the contiguous United States.
+Values for fuel loading, fuel moisture, and surface fuel depth are derived from Scott and Burgan 40 Fuel Model designations, using methods developed for FastFuels (citation). These data are available at a 30x30m resolution for the contiguous United States.
 
 When a fuel type is selected (*e.g.* grass or litter), fuel parameter values are derived from only SB40 Fuel Models that are predominantly comprised of that fuel type. Because DUET does not have a designation for shrub fuels, any SB40 Fuel Model with major shrub components are categorized as grass, since their growth patterns will also follow light availability.
 

@@ -33,9 +33,9 @@ class TestLandfireTargets:
         )
         assert isinstance(query, LandfireQuery)
         assert isinstance(query.fuel_types, np.ndarray)
-        assert isinstance(query.density, np.ndarray)
+        assert isinstance(query.loading, np.ndarray)
         assert isinstance(query.moisture, np.ndarray)
-        assert isinstance(query.height, np.ndarray)
+        assert isinstance(query.depth, np.ndarray)
 
     def test_query_landfire_years(self):
         sample_aoi = self.get_geojson()
@@ -61,12 +61,12 @@ class TestLandfireTargets:
         query = query_landfire(
             area_of_interest=sample_aoi, year=2019, directory=TMP_DIR, input_epsg=4326
         )
-        # test just grass density
-        grass_density = assign_targets_from_sb40(query, "grass", "density")
-        assert isinstance(grass_density, Targets)
-        assert grass_density.method == "maxmin"
-        assert grass_density.args == ["max", "min"]
-        assert len(grass_density.targets) == 2
+        # test just grass loading
+        grass_loading = assign_targets_from_sb40(query, "grass", "loading")
+        assert isinstance(grass_loading, Targets)
+        assert grass_loading.method == "maxmin"
+        assert grass_loading.args == ["max", "min"]
+        assert len(grass_loading.targets) == 2
         # test fuel and parameter with only one value
         with pytest.warns(UserWarning):
             grass_moisture = assign_targets_from_sb40(query, "grass", "moisture")
@@ -74,26 +74,26 @@ class TestLandfireTargets:
             query, "grass", "moisture", method="constant"
         )
         # get the rest of the fuels and params with maxmin
-        grass_height = assign_targets_from_sb40(query, "grass", "height")
-        litter_density = assign_targets_from_sb40(query, "litter", "density")
-        litter_moisture = assign_targets_from_sb40(query, "litter", "density")
-        litter_height = assign_targets_from_sb40(query, "litter", "density")
-        all_density = assign_targets_from_sb40(query, "all", "density")
+        grass_depth = assign_targets_from_sb40(query, "grass", "depth")
+        litter_loading = assign_targets_from_sb40(query, "litter", "loading")
+        litter_moisture = assign_targets_from_sb40(query, "litter", "loading")
+        litter_depth = assign_targets_from_sb40(query, "litter", "loading")
+        all_loading = assign_targets_from_sb40(query, "all", "loading")
         all_moisture = assign_targets_from_sb40(query, "all", "moisture")
-        all_height = assign_targets_from_sb40(query, "all", "height")
+        all_depth = assign_targets_from_sb40(query, "all", "depth")
         # test a couple with meansd
-        grass_density_meansd = assign_targets_from_sb40(
-            query, "grass", "density", method="meansd"
+        grass_loading_meansd = assign_targets_from_sb40(
+            query, "grass", "loading", method="meansd"
         )
-        all_height = assign_targets_from_sb40(query, "all", "height", "meansd")
+        all_depth = assign_targets_from_sb40(query, "all", "depth", "meansd")
         # test wrong inputs
         with pytest.raises(ValueError):
-            grass_height = assign_targets_from_sb40(query, "both", "height")
+            grass_depth = assign_targets_from_sb40(query, "both", "depth")
         with pytest.raises(ValueError):
-            grass_height = assign_targets_from_sb40(query, "all", "moist")
+            grass_depth = assign_targets_from_sb40(query, "all", "moist")
         with pytest.raises(ValueError):
-            grass_height = assign_targets_from_sb40(
-                query, "all", "height", method="minmax"
+            grass_depth = assign_targets_from_sb40(
+                query, "all", "depth", method="minmax"
             )
 
 
