@@ -15,38 +15,44 @@ duet_path = Path(__file__).parent.parent / "tests" / "tmp"
 input_file = InputFile.create(nx=100, ny=100, nz=30, duration=5, wind_direction=270)
 input_file.to_file(duet_path)
 
+## DUET IS RUN LOCALLY
+
 # Import DUET outputs
-duet_run = import_duet(directory=duet_path, nx=100, ny=100)
+duet_run = import_duet(directory=duet_path)
 
 # Assign targets for each fuel type and fuel parameter
 ## method options: "maxmin", "meansd", "constant"
-grass_density = assign_targets(method="maxmin", max=1.0, min=0.1)
-litter_density = assign_targets(method="meansd", mean=0.6, sd=0.05)
-grass_height = assign_targets(method="constant", value=1.0)
-litter_height = assign_targets(method="constant", value=0.1)
+grass_loading = assign_targets(method="maxmin", max=1.0, min=0.1)
+litter_loading = assign_targets(method="meansd", mean=0.6, sd=0.05)
+grass_depth = assign_targets(method="constant", value=1.0)
+coniferous_depth = assign_targets(method="constant", value=0.03)
+deciduous_depth = assign_targets(method="constant", value=0.1)
 
 # Bring together fuel types for each parameter
-density_targets = set_fuel_parameter(
-    parameter="density", grass=grass_density, litter=litter_density
+loading_targets = set_fuel_parameter(
+    parameter="loading", grass=grass_loading, litter=litter_loading
 )
-height_targets = set_fuel_parameter(
-    parameter="height", grass=grass_height, litter=litter_height
+depth_targets = set_fuel_parameter(
+    parameter="depth",
+    grass=grass_depth,
+    coniferous=coniferous_depth,
+    deciduous=deciduous_depth,
 )
 
 # Calibrate the DUET run
 calibrated_duet = calibrate(
-    duet_run=duet_run, fuel_parameter_targets=[density_targets, height_targets]
+    duet_run=duet_run, fuel_parameter_targets=[loading_targets, depth_targets]
 )
 
 # Look at individual numpy arrays
-calibrated_litter_density = calibrated_duet.to_numpy(
-    fuel_type="litter", fuel_parameter="density"
+calibrated_litter_loading = calibrated_duet.to_numpy(
+    fuel_type="litter", fuel_parameter="loading"
 )  # 2D array
-calibrated_height = calibrated_duet.to_numpy(
-    fuel_type="separated", fuel_parameter="height"
-)  # 3D array, two layers
-calibrated_density = calibrated_duet.to_numpy(
-    fuel_type="integrated", fuel_parameter="density"
+calibrated_depth = calibrated_duet.to_numpy(
+    fuel_type="separated", fuel_parameter="depth"
+)  # 3D array, three layers
+calibrated_loading = calibrated_duet.to_numpy(
+    fuel_type="integrated", fuel_parameter="loading"
 )  # 2D array
 
 # Export to QUIC-Fire .dat files
