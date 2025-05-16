@@ -1,0 +1,812 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../tutorials/">
+      
+      
+        <link rel="next" href="../reference/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.14">
+    
+    
+      
+        <title>How-To Guides - duet-tools Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.342714a4.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#inputs" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="duet-tools Documentation" class="md-header__button md-logo" aria-label="duet-tools Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            duet-tools Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              How-To Guides
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/nmc-cafes/duet-tools" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    duet-tools
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="duet-tools Documentation" class="md-nav__button md-logo" aria-label="duet-tools Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    duet-tools Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/nmc-cafes/duet-tools" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    duet-tools
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../explanation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Explanation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Tutorials
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    How-To Guides
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    How-To Guides
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#inputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Inputs
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Inputs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-to-create-and-write-a-duet-input-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      How to create and write a DUET input file
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Calibration
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Calibration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-to-import-duet-output-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      How to import DUET output files
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-to-calibrate-duet-outputs-to-target-ranges-andor-distributions" class="md-nav__link">
+    <span class="md-ellipsis">
+      How to calibrate DUET outputs to target ranges and/or distributions
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-to-calibrate-duet-using-landfire-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      How to calibrate DUET using LANDFIRE data
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-to-create-numpy-arrays-from-calibrated-duet-outputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      How to create numpy arrays from calibrated DUET outputs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-to-export-quicfire-dat-files-from-calibrated-duet-outputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      How to export quicfire .dat files from calibrated DUET outputs
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Reference
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#inputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Inputs
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Inputs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-to-create-and-write-a-duet-input-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      How to create and write a DUET input file
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Calibration
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Calibration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-to-import-duet-output-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      How to import DUET output files
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-to-calibrate-duet-outputs-to-target-ranges-andor-distributions" class="md-nav__link">
+    <span class="md-ellipsis">
+      How to calibrate DUET outputs to target ranges and/or distributions
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-to-calibrate-duet-using-landfire-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      How to calibrate DUET using LANDFIRE data
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-to-create-numpy-arrays-from-calibrated-duet-outputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      How to create numpy arrays from calibrated DUET outputs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-to-export-quicfire-dat-files-from-calibrated-duet-outputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      How to export quicfire .dat files from calibrated DUET outputs
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+  <h1>How-To Guides</h1>
+
+<h2 id="inputs">Inputs</h2>
+<p>A DUET input file can be created and written programatically. Please see <a href="../reference/#duet_tools.inputs">inputs</a> for full documentation.</p>
+<h3 id="how-to-create-and-write-a-duet-input-file">How to create and write a DUET input file</h3>
+<p>A DUET input file is represented by the <a href="../reference/#duet_tools.inputs.InputFile"><code>InputFile</code></a> class. To create an instance of the class, use the <a href="../reference/#duet_tools.inputs.InputFile.create"><code>InputFile.create</code></a> class method.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">duet_tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">InputFile</span>
+
+<span class="n">input_file</span> <span class="o">=</span> <span class="n">InputFile</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+    <span class="n">nx</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
+    <span class="n">ny</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
+    <span class="n">nz</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+    <span class="n">duration</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+    <span class="n">wind_direction</span><span class="o">=</span><span class="mi">270</span><span class="p">,</span>
+<span class="p">)</span>
+</code></pre></div>
+<p>Once an <code>InputFile</code> is created, it can be written to the DUET simulation directory using <a href="../reference/#duet_tools.inputs.InputFile.to_file"><code>InputFile.to_file</code></a>.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">duet_tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">InputFile</span>
+
+<span class="n">input_file</span> <span class="o">=</span> <span class="n">InputFile</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+    <span class="n">nx</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
+    <span class="n">ny</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
+    <span class="n">nz</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+    <span class="n">duration</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+    <span class="n">wind_direction</span><span class="o">=</span><span class="mi">270</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">duet_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;path/to/duet/directory&quot;</span><span class="p">)</span>
+
+<span class="n">input_file</span><span class="o">.</span><span class="n">to_file</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">duet_dir</span><span class="p">)</span>
+</code></pre></div>
+<p>This will write a file called <code>duet.in</code> to the directory. Fuel grids must be supplied by the user.</p>
+<h2 id="calibration">Calibration</h2>
+<p>DUET output files can be calibrated to match user-provided or data-derived ranges or distributions of fuel parameters. Please see <a href="../reference/#duet_tools.calibration">calibration</a> for full documentation.</p>
+<h3 id="how-to-import-duet-output-files">How to import DUET output files</h3>
+<p>DUET output files can be read in using the <a href="../reference/#duet_tools.calibration.import_duet"><code>import_duet</code></a> function. This function assumes that all input and output files used and exported by DUET are present in the provided directory. To import DUET outputs, simply specify the path to their directory and the version of DUET used to produce the outputs. The resulting object is of class <a href="../reference/#duet_tools.calibration.DuetRun"><code>DuetRun</code></a>.</p>
+<p><div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">duet_tools.calibration</span><span class="w"> </span><span class="kn">import</span> <span class="n">import_duet</span>
+
+<span class="n">duet_path</span> <span class="o">=</span> <span class="s2">&quot;path/to/duet/files&quot;</span>
+<span class="n">duet_run</span> <span class="o">=</span> <span class="n">import_duet</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">duet_path</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="s2">&quot;v2&quot;</span><span class="p">)</span>
+</code></pre></div>
+- <strong>directory</strong> is the path to the DUET output files.
+- <strong>version</strong> specifies the verision of DUET that was used.</p>
+<p>If DUET input files are not present, or if output file names do not follow DUET convention, the alternate function<a href="../reference/#duet_tools.calibration.import_duet_manual"><code>import_duet_manual</code></a> may be used instead. Additional arguments include the names of the necessary DUET output files and the dimension sizes of the arrays.</p>
+<p><div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">duet_tools.calibration</span><span class="w"> </span><span class="kn">import</span> <span class="n">import_duet_manual</span>
+
+<span class="n">duet_path</span> <span class="o">=</span> <span class="s2">&quot;path/to/duet/files&quot;</span>
+<span class="n">duet_run</span> <span class="o">=</span> <span class="n">import_duet_manual</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">duet_path</span><span class="p">,</span>
+                              <span class="n">loading_grid_name</span><span class="o">=</span><span class="s2">&quot;rhof.dat&quot;</span><span class="p">,</span>
+                              <span class="n">moisture_grid_name</span><span class="o">=</span><span class="s2">&quot;moist.dat&quot;</span><span class="p">,</span>
+                              <span class="n">depth_grid_name</span><span class="o">=</span><span class="s2">&quot;depth.dat&quot;</span><span class="p">,</span>
+                              <span class="n">nx</span> <span class="o">=</span> <span class="mi">200</span><span class="p">,</span>
+                              <span class="n">ny</span> <span class="o">=</span> <span class="mi">200</span><span class="p">,</span>
+                              <span class="n">nsp</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+                              <span class="n">version</span><span class="o">=</span><span class="s2">&quot;v2&quot;</span><span class="p">)</span>
+</code></pre></div>
+- <strong>loading_grid_name</strong>, <strong>moisture_grid_name</strong>, and <strong>depth_grid_name</strong> are the file names of the three required DUET output arrays.
+- <strong>nx</strong> and <strong>ny</strong> define the number of cells in the x and y direction of the DUET grid.
+- <strong>nsp</strong> defines the number of separate fuel layers output by DUET. For DUET version 2, this is the tree species in the DUET input files, plus grass. For DUET version 1, this is always 2 (grass and litter).</p>
+<h3 id="how-to-calibrate-duet-outputs-to-target-ranges-andor-distributions">How to calibrate DUET outputs to target ranges and/or distributions</h3>
+<p>A target range for each fuel parameter can be defined using method="maxmin". If instead you want to define a target distribution of values, use method="meansd".
+First, make <a href="../reference/#duet_tools.calibration.Targets"><code>Targets</code></a> objects for each fuel parameter and fuel type you wish to calibrate using <a href="../reference/#duet_tools.calibration.assign_targets"><code>assign_targets</code></a>. Then, set each fuel parameter to the associated target(s) using <a href="../reference/#duet_tools.calibration.set_fuel_parameter"><code>set_fuel_parameter</code></a>. Last, provide a list of the resulting <a href="../reference/#duet_tools.calibration.FuelParameter"><code>FuelParameter</code></a> objects to the <a href="../reference/#duet_tools.calibration.calibrate"><code>calibrate</code></a> function, along with the <code>DuetRun</code> to calibrate.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">duet_tools.calibration</span><span class="w"> </span><span class="kn">import</span> <span class="n">assign_targets</span><span class="p">,</span> <span class="n">set_fuel_parameter</span><span class="p">,</span> <span class="n">calibrate</span>
+
+<span class="n">grass_loading</span> <span class="o">=</span> <span class="n">assign_targets</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s2">&quot;maxmin&quot;</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+<span class="n">coniferous_loading</span> <span class="o">=</span> <span class="n">assign_targets</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s2">&quot;meansd&quot;</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span> <span class="n">sd</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+<span class="n">deciduous_loading</span> <span class="o">=</span> <span class="n">assign_targets</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s2">&quot;meansd&quot;</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">sd</span><span class="o">=</span><span class="mf">0.2</span><span class="p">)</span>
+<span class="n">grass_depth</span> <span class="o">=</span> <span class="n">assign_targets</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s2">&quot;constant&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">0.75</span><span class="p">)</span>
+<span class="n">litter_depth</span> <span class="o">=</span> <span class="n">assign_targets</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s2">&quot;constant&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">0.2</span><span class="p">)</span>
+</code></pre></div>
+<ul>
+<li><strong>method</strong> specifies how the calibration will be conducted. When using the <code>"maxmin"</code> method, a target range of values should be supplied using the keyword arguments <strong>max</strong> and <strong>min</strong>. To specify a target distribution, set the method to <code>"meansd"</code> and use the keyword arguments <strong>mean</strong> and <strong>sd</strong>. To assign the same value to everywhere a fuel type is present, use the <code>"constant"</code> calibration method with a keyword argument of <strong>value</strong>.</li>
+</ul>
+<p>Once any number of <code>Targets</code> objects are created, they are used to set the targets of each desired fuel parameter.</p>
+<p><div class="highlight"><pre><span></span><code><span class="n">loading_targets</span> <span class="o">=</span> <span class="n">set_fuel_parameter</span><span class="p">(</span>
+    <span class="n">parameter</span><span class="o">=</span><span class="s2">&quot;loading&quot;</span><span class="p">,</span>
+    <span class="n">grass</span><span class="o">=</span><span class="n">grass_loading</span><span class="p">,</span>
+    <span class="n">coniferous</span> <span class="o">=</span> <span class="n">coniferous_loading</span><span class="p">,</span>
+    <span class="n">deciduous</span><span class="o">=</span><span class="n">deciduous_loading</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">depth_targets</span> <span class="o">=</span> <span class="n">set_fuel_parameter</span><span class="p">(</span>
+    <span class="n">parameter</span><span class="o">=</span><span class="s2">&quot;depth&quot;</span><span class="p">,</span> <span class="n">grass</span><span class="o">=</span><span class="n">grass_depth</span><span class="p">,</span> <span class="n">litter</span><span class="o">=</span><span class="n">litter_depth</span>
+<span class="p">)</span>
+</code></pre></div>
+- <strong>parameter</strong> can be one of <code>"loading"</code>, <code>"depth"</code>, or <code>"moisture"</code>. A <code>FuelParameter</code> object represents only one of thes parameters.</p>
+<ul>
+<li><strong>keyword arguments</strong> specify which fuel type(s) should be set for a given parameter. To set fuel types individually, use any of <strong>grass</strong>, <strong>coniferous</strong>, and/or <strong>deciduous</strong>. To set coniferous and deciduous litter together, use <strong>litter</strong>. If you have targets that apply to all fuel types, rather than litter or grass separately, simply use the <strong>all</strong> keyword argument.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="n">all_loading</span> <span class="o">=</span> <span class="n">assign_targets</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s2">&quot;maxmin&quot;</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+<span class="n">loading_targets</span> <span class="o">=</span> <span class="n">set_fuel_parameter</span><span class="p">(</span><span class="n">parameter</span><span class="o">=</span><span class="s2">&quot;loading&quot;</span><span class="p">,</span> <span class="nb">all</span><span class="o">=</span><span class="n">all_loading</span><span class="p">)</span>
+</code></pre></div>
+<p>Last, use the calibrate function to return a new <code>DuetRun</code> object with calibrated fuel arrays.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Calibrate</span>
+<span class="n">calibrated_duet</span> <span class="o">=</span> <span class="n">calibrate</span><span class="p">(</span>
+    <span class="n">duet_run</span><span class="o">=</span><span class="n">duet_run</span><span class="p">,</span> <span class="n">fuel_parameter_targets</span><span class="o">=</span><span class="p">[</span><span class="n">loading_targets</span><span class="p">,</span> <span class="n">grass_targets</span><span class="p">]</span>
+<span class="p">)</span>
+</code></pre></div>
+<ul>
+<li><strong>duet_run</strong> is the <code>DuetRun</code> object that will be calibrated.</li>
+<li><strong>fuel_parameter_targets</strong> is the <code>FuelParameter</code> object or list of <code>FuelParameter</code> objects that contain calibration targets.</li>
+</ul>
+<h3 id="how-to-calibrate-duet-using-landfire-data">How to calibrate DUET using LANDFIRE data</h3>
+<p>When fuel parameter targets are not known for the study area, calibration can be conducted using targets derived from LANDFIRE data (Scott and Burgan 40 Fuel Models; SB40). These data can be queried using the secondary <code>landfire</code> module, installed as an extra. Please see <a href="../reference/#duet_tools.landfire">landfire</a> for full documentation.</p>
+<p>Installation of the <code>landfire</code> extra requires Python &lt;3.12. Install as follows:</p>
+<div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>duet-tools<span class="o">[</span>landfire<span class="o">]</span>
+</code></pre></div>
+<p>The first step is to use the <a href="../reference/#duet_tools.landfire.query_landfire"><code>query_landfire</code></a> function to access fuels data for the specific area of interest. A spatial bounding box must be supplied in the form of either a geojson or shapely polygon. The function returns a <a href="../reference/#duet_tools.landfire.LandfireQuery"><code>LandfireQuery</code></a> class object.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">geojson</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">duet_tools.landfire</span><span class="w"> </span><span class="kn">import</span> <span class="n">query_landfire</span>
+
+<span class="n">geojson_path</span> <span class="o">=</span> <span class="s2">&quot;path/to/geojson/file&quot;</span>
+<span class="n">landfire_path</span> <span class="o">=</span> <span class="s2">&quot;path/where/landfire/files/are/saved&quot;</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">geojson_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">fid</span><span class="p">:</span>
+    <span class="n">aoi_geojson</span> <span class="o">=</span> <span class="n">geojson</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fid</span><span class="p">)</span>
+<span class="n">landfire_query</span> <span class="o">=</span> <span class="n">query_landfire</span><span class="p">(</span>
+    <span class="n">area_of_interest</span><span class="o">=</span><span class="n">aoi_geojson</span><span class="p">,</span>
+    <span class="n">directory</span><span class="o">=</span><span class="n">landfire_path</span><span class="p">,</span>
+    <span class="n">input_epsg</span><span class="o">=</span><span class="mi">4326</span>
+<span class="p">)</span>
+</code></pre></div>
+<ul>
+<li><strong>area_of_interest</strong> may be given as either a geojson polygon or a shapely polygon. It is the spatial bounding box of the burn plot/area of interest.</li>
+<li><strong>directory</strong> is the path to the directory where landfire-associated files will be download, namely a .zip file that is read in and processed under the hood.</li>
+<li><strong>input_epsg</strong> is the EPSG code for the coordinate reference system and projects of the area of interest polygon.</li>
+<li><strong>delete_files</strong> specifies whether or not to delete to files downloaded from the LANDFIRE website. Since the files are usually not needed after the <code>LandfireQuery</code> object is returned, it defaults to True.</li>
+</ul>
+<p>A utility function allows a user to read in a shapefile to a geojson.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">duet_tools.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_shapefile_to_geojson</span>
+
+<span class="n">shapefile_path</span> <span class="o">=</span> <span class="s2">&quot;path/to/shapefile.shp&quot;</span>
+<span class="n">aoi_geojson</span> <span class="o">=</span> <span class="n">read_shapefile_to_geojson</span><span class="p">(</span><span class="n">shapefile_path</span><span class="p">)</span>
+</code></pre></div>
+<p>Once LANDFIRE data is queried, targets can be assigned for whatever fuel parameters and types the user desires using <a href="../reference/#duet_tools.landfire.assign_targets_from_sb40"><code>assign_targets_from_sb40</code></a>. Unlike <code>assign_targets</code>, the fuel parameter and fuel type must be specified for targets to be assigned.</p>
+<p><em>NOTE: Coniferous and deciduous litter targets cannot be defined separately from LANDFIRE. Use <code>litter</code> and/ore <code>grass</code> only</em></p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">duet_tools.landfire</span><span class="w"> </span><span class="kn">import</span> <span class="n">assign_targets_from_sb40</span>
+
+<span class="n">litter_loading_sb40</span> <span class="o">=</span> <span class="n">assign_targets_from_sb40</span><span class="p">(</span>
+    <span class="n">query</span><span class="o">=</span><span class="n">landfire_query</span><span class="p">,</span>
+    <span class="n">fuel_type</span><span class="o">=</span><span class="s2">&quot;litter&quot;</span><span class="p">,</span>
+    <span class="n">parameter</span><span class="o">=</span><span class="s2">&quot;loading&quot;</span><span class="p">,</span>
+    <span class="n">method</span><span class="o">=</span><span class="s2">&quot;maxmin&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</code></pre></div>
+<p>A <code>Targets</code> object is returned with values derived from the SB40 designations in the area of interest. An error will be issued if the given fuel type is not present in the area of interest.</p>
+<p>The default calibration method is "maxmin". If the fuel parameter has only a single value for the given fuel type, the chosen calibration method will be changed to "constant" (if not already) and a warning will be issued. If "meansd" is used, a warning will be issued, since specifying a distribution from SB40-derived values is discouraged. If the "constant" calibration method is specified and more than one value for the given fuel parameter and type is present, an error will be issued.</p>
+<p>Once a <code>Targets</code> object is obtained from <code>assing_targets_from_sb40</code> calibration proceeds in the normal way.</p>
+<div class="highlight"><pre><span></span><code><span class="n">loading_targets</span> <span class="o">=</span> <span class="n">set_fuel_parameter</span><span class="p">(</span>
+    <span class="n">parameter</span><span class="o">=</span><span class="s2">&quot;loading&quot;</span><span class="p">,</span> <span class="n">litter</span><span class="o">=</span><span class="n">litter_loading_sb40</span>
+<span class="p">)</span>
+<span class="n">calibrated_duet</span> <span class="o">=</span> <span class="n">calibrate</span><span class="p">(</span>
+    <span class="n">duet_run</span><span class="o">=</span><span class="n">duet_run</span><span class="p">,</span> <span class="n">fuel_parameter_targets</span><span class="o">=</span><span class="n">loading_targets</span>
+<span class="p">)</span>
+</code></pre></div>
+<h3 id="how-to-create-numpy-arrays-from-calibrated-duet-outputs">How to create numpy arrays from calibrated DUET outputs</h3>
+<p>Once a <code>DuetRun</code> object is created by the <code>calibrate</code> function, its constituent arrays can be exported to numpy ndarrays. Specify the parameter and fuel type.</p>
+<div class="highlight"><pre><span></span><code><span class="n">grass_loading_array</span> <span class="o">=</span> <span class="n">calibrated_duet</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span>
+    <span class="n">fuel_type</span><span class="o">=</span><span class="s2">&quot;grass&quot;</span><span class="p">,</span> <span class="n">fuel_parameter</span><span class="o">=</span><span class="s2">&quot;loading&quot;</span>
+<span class="p">)</span> <span class="c1">#2D array</span>
+<span class="n">litter_depth_array</span> <span class="o">=</span> <span class="n">calibrated_duet</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span>
+    <span class="n">fuel_type</span><span class="o">=</span><span class="s2">&quot;litter&quot;</span><span class="p">,</span> <span class="n">fuel_parameter</span><span class="o">=</span><span class="s2">&quot;depth&quot;</span>
+<span class="p">)</span>
+<span class="n">integrated_loading</span> <span class="o">=</span> <span class="n">calibrated_duet</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span>
+    <span class="n">fuel_type</span><span class="o">=</span><span class="s2">&quot;integrated&quot;</span><span class="p">,</span> <span class="n">fuel_parameter</span><span class="o">=</span><span class="s2">&quot;loading&quot;</span>
+<span class="p">)</span> <span class="c1">#2D array of grass and litter</span>
+<span class="n">separated_loading</span> <span class="o">=</span> <span class="n">calibrated_duet</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span>
+    <span class="n">fuel_type</span><span class="o">=</span><span class="s2">&quot;separated&quot;</span><span class="p">,</span> <span class="n">fuel_parameter</span><span class="o">=</span><span class="s2">&quot;depth</span>
+<span class="p">)</span> <span class="c1">#3D array where grass is z-layer 0, coniferous litter is z-layer 1, and deciduous litter is z-layer 2</span>
+</code></pre></div>
+<h3 id="how-to-export-quicfire-dat-files-from-calibrated-duet-outputs">How to export quicfire .dat files from calibrated DUET outputs</h3>
+<p>The calibrated <code>DuetRun</code> object can also be exported as QUIC-Fire fuel input files to a specified directory. The resulting .dat files are 3D, with a single z-layer of integrated fuel types for each parameter. Naming follows the explected QUIC-Fire filenames of "treesrhof.dat", "treesmoist.dat", and/or "treesfueldepth.dat".</p>
+<div class="highlight"><pre><span></span><code><span class="n">quicfire_path</span> <span class="o">=</span> <span class="s2">&quot;path/to/quicfire&quot;</span>
+<span class="n">calibrated_duet</span><span class="o">.</span><span class="n">to_quicfire</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">quicfire_path</span><span class="p">)</span>
+</code></pre></div>
+<p>If a parameter array is not present in the <code>duet_run</code> object, it will not be written to a file. The user may also choose not to export any parameter by setting its argement to False.</p>
+<div class="highlight"><pre><span></span><code><span class="n">quicfire_path</span> <span class="o">=</span> <span class="s2">&quot;path/to/quicfire&quot;</span>
+<span class="n">calibrated_duet</span><span class="o">.</span><span class="n">to_quicfire</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">quicfire_path</span><span class="p">,</span> <span class="n">moisture</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</code></pre></div>
+<p>If the directory already contains any of those three files, an error will be raised. To overwrite those files, set overwrite to True.</p>
+<div class="highlight"><pre><span></span><code><span class="n">quicfire_path</span> <span class="o">=</span> <span class="s2">&quot;path/to/quicfire&quot;</span>
+<span class="n">calibrated_duet</span><span class="o">.</span><span class="n">to_quicfire</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">quicfire_path</span><span class="p">,</span> <span class="n">moisture</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": ["content.code.copy"], "search": "../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.13a4f30d.min.js"></script>
+      
+    
+  </body>
+</html>
