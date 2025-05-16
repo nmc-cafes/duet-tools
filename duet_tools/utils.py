@@ -9,7 +9,7 @@ import numpy as np
 from pathlib import Path
 from scipy.io import FortranFile
 import shapefile  # pyshp
-import tempfile
+import io
 import zipfile
 
 
@@ -122,7 +122,7 @@ def write_array_to_dat(
 
 def read_shapefile_to_geojson(path: Path) -> geojson.Polygon:
     """
-    Read a shapefile and convert to a geojson polgyon. May be used to
+    Read a shapefile and convert to a geojson polygon. May be used to
     query LANDFIRE data. Assumes the shapefile has Polygon geometry.
     Only the first feature is converted to a geojson.
 
@@ -137,16 +137,27 @@ def read_shapefile_to_geojson(path: Path) -> geojson.Polygon:
     A geojson Polygon object.
     """
     if path.suffix == ".zip":
-        with zipfile.ZipFile(
-            path, "r"
-        ) as zip_ref, tempfile.TemporaryDirectory() as tmpdir:
-            tmpdir_path = Path(tmpdir)
-            zip_ref.extractall(tmpdir_path)
-            shp_files = list(tmpdir_path.glob("*.shp"))
-            if not shp_files:
-                raise FileNotFoundError("No .shp file found in the zip archive.")
-            shp_path = shp_files[0]
-            reader = shapefile.Reader(str(shp_path))
+        with zipfile.ZipFile(path, "r") as zip_ref:
+            # Extract shapefile components to memory
+            shp_name = next(
+                (name for name in zip_ref.namelist() if name.endswith(".shp")), None
+            )
+            shx_name = next(
+                (name for name in zip_ref.namelist() if name.endswith(".shx")), None
+            )
+            dbf_name = next(
+                (name for name in zip_ref.namelist() if name.endswith(".dbf")), None
+            )
+
+            if not (shp_name and shx_name and dbf_name):
+                raise FileNotFoundError("Zip must contain .shp, .shx, and .dbf files.")
+
+            # Read each file into BytesIO
+            shp_io = io.BytesIO(zip_ref.read(shp_name))
+            shx_io = io.BytesIO(zip_ref.read(shx_name))
+            dbf_io = io.BytesIO(zip_ref.read(dbf_name))
+
+            reader = shapefile.Reader(shp=shp_io, shx=shx_io, dbf=dbf_io)
     else:
         if not path.exists():
             raise FileNotFoundError(f"Shapefile not found: {path}")
@@ -158,10 +169,8 @@ def read_shapefile_to_geojson(path: Path) -> geojson.Polygon:
 
     coords = shape.points
     parts = list(shape.parts) + [len(coords)]
-
     rings = [coords[parts[i] : parts[i + 1]] for i in range(len(parts) - 1)]
     polygon = geojson.Polygon([ring for ring in rings])
 
     reader.close()
-
     return polygon
