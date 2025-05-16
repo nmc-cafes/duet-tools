@@ -38,14 +38,14 @@ class LandfireQuery:
     def __init__(
         self,
         fuel_types: np.ndarray,
-        density: np.ndarray,
+        loading: np.ndarray,
         moisture: np.ndarray,
-        height: np.ndarray,
+        depth: np.ndarray,
     ):
         self.fuel_types = fuel_types
-        self.density = density
+        self.loading = loading
         self.moisture = moisture
-        self.height = height
+        self.depth = depth
         self._validate_arrays_shape()
 
     def _get_fueltype_indices(self, arr: np.ndarray, ft: int):
@@ -72,7 +72,7 @@ class LandfireQuery:
 
     def _validate_get_targets(self, fuel_type, parameter, method):
         fueltypes_allowed = ["grass", "litter", "all"]
-        parameters_alowed = ["density", "moisture", "height"]
+        parameters_alowed = ["loading", "moisture", "depth"]
         methods_allowed = ["maxmin", "meansd", "constant"]
 
         if fuel_type not in fueltypes_allowed:
@@ -150,9 +150,9 @@ def query_landfire(
 
     return LandfireQuery(
         fuel_types=sb40_arr[0, :, :],
-        density=sb40_arr[1, :, :],
+        loading=sb40_arr[1, :, :],
         moisture=sb40_arr[2, :, :],
-        height=sb40_arr[3, :, :],
+        depth=sb40_arr[3, :, :],
     )
 
 
@@ -170,7 +170,7 @@ def assign_targets_from_sb40(
     fuel_type : str
         The fuel type to obtain target values for. Must be one of "grass", "litter", or "all".
     parameter : str
-        The fuel parameter to obtain target values for. Must be one of "density", "moisture", or "height".
+        The fuel parameter to obtain target values for. Must be one of "loading", "moisture", or "depth".
     method : str
         The desired calibration method for the sb40-derived targets. Must be one of "maxmin", "meandsd",
         or "constant". Default is "maxmin". "constant" is only recommended if only one parameter value
@@ -184,12 +184,12 @@ def assign_targets_from_sb40(
     """
     query._validate_get_targets(fuel_type, parameter, method)
     # select fuel parameter
-    if parameter == "density":
-        param_arr = query.density
+    if parameter == "loading":
+        param_arr = query.loading
     elif parameter == "moisture":
         param_arr = query.moisture
     else:
-        param_arr = query.height
+        param_arr = query.depth
     # select fuel type
     if fuel_type == "grass":
         fuel_arr = param_arr[query._get_fueltype_indices(query.fuel_types, 1)]
@@ -387,7 +387,7 @@ def _get_sb40_fuel_params(params: pd.DataFrame) -> dict:
 
 def _get_sb40_arrays(sb40_keys: np.ndarray, sb40_dict: dict) -> np.ndarray:
     """
-    Use a dictionary of bulk density and fuel types that correspond to SB40
+    Use a dictionary of fuel loading and fuel types that correspond to SB40
     fuel models to assign those values across the study area.
 
     Fuel types are as follows:
@@ -399,9 +399,9 @@ def _get_sb40_arrays(sb40_keys: np.ndarray, sb40_dict: dict) -> np.ndarray:
     3D np.ndarray:
     4 layers:
         1. fuel types
-        2. bulk density values as calculated by fastfuels
+        2. fuel loading (bulk density) values as calculated by fastfuels
         3. fuel moisture content values as calculated by fastfuels
-        4. fuel height values as caluclated by fastfuels
+        4. fuelbed depth values as caluclated by fastfuels
     """
     val_idx = [5, 1, 3, 4]
     fuel_arr = np.zeros((4, sb40_keys.shape[0], sb40_keys.shape[1]))
