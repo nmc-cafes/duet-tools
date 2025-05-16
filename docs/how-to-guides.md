@@ -82,7 +82,7 @@ A target range for each fuel parameter can be defined using method="maxmin". If 
 First, make [`Targets`](reference.md#duet_tools.calibration.Targets) objects for each fuel parameter and fuel type you wish to calibrate using [`assign_targets`](reference.md#duet_tools.calibration.assign_targets). Then, set each fuel parameter to the associated target(s) using [`set_fuel_parameter`](reference.md#duet_tools.calibration.set_fuel_parameter). Last, provide a list of the resulting [`FuelParameter`](reference.md#duet_tools.calibration.FuelParameter) objects to the [`calibrate`](reference.md#duet_tools.calibration.calibrate) function, along with the `DuetRun` to calibrate.
 
 ```python
-from duet_tools.calibrattion import assign_targets, set_fuel_parameter, calibrate
+from duet_tools.calibration import assign_targets, set_fuel_parameter, calibrate
 
 grass_density = assign_targets(method="maxmin", max=1.0, min=0.1)
 coniferous_density = assign_targets(method="meansd", mean=0.6, sd=0.1)
@@ -158,6 +158,15 @@ landfire_query = query_landfire(
 - **directory** is the path to the directory where landfire-associated files will be download, namely a .zip file that is read in and processed under the hood.
 - **input_epsg** is the EPSG code for the coordinate reference system and projects of the area of interest polygon.
 - **delete_files** specifies whether or not to delete to files downloaded from the LANDFIRE website. Since the files are usually not needed after the `LandfireQuery` object is returned, it defaults to True.
+
+A utility function allows a user to read in a shapefile to a geojson.
+
+```python
+from duet_tools.utils import read_shapefile_to_geojson
+
+shapefile_path = "path/to/shapefile.shp"
+aoi_geojson = read_shapefile_to_geojson(shapefile_path)
+```
 
 Once LANDFIRE data is queried, targets can be assigned for whatever fuel parameters and types the user desires using [`assign_targets_from_sb40`](reference.md#duet_tools.landfire.assign_targets_from_sb40). Unlike `assign_targets`, the fuel parameter and fuel type must be specified for targets to be assigned.
 
