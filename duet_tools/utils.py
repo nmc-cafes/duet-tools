@@ -162,4 +162,6 @@ def read_shapefile_to_geojson(path: Path) -> geojson.Polygon:
     rings = [coords[parts[i] : parts[i + 1]] for i in range(len(parts) - 1)]
     polygon = geojson.Polygon([ring for ring in rings])
 
+    reader.close()
+
     return polygon
