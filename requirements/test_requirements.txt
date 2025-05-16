@@ -3,3 +3,5 @@ numpy
 pandas
 scipy
 matplotlib
+pyshp
+geojson

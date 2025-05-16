@@ -14,6 +14,9 @@ import pandas as pd
 
 # Internal Imports
 from duet_tools.utils import read_dat_to_array, write_array_to_dat
+from duet_tools.inputs import InputFile
+
+DATA_DIR = Path(__file__).parent / "data"
 
 DATA_DIR = Path(__file__).parent / "data"
 
@@ -24,16 +27,16 @@ class DuetRun:
 
     Attributes
     ----------
-    density : np.ndarray
-        3D Array of fuel bulk density (kg/m^3) values in the format exported by DUET:
-        Grass bulk denisty in first layer, litter bulk density for each tree species in
+    loading : np.ndarray
+        3D Array of fuel loading (bulk density in kg/m^3) values in the format exported by DUET:
+        Grass fuel load in first layer, litter fuel load for each tree species in
         subsequent layers.
     moisture : np.ndarray
         3D Array of fuel moisture content (%) values in the format exported by DUET:
         Grass moisture content in first layer, litter moisture content for each tree
         species in subsequent layers.
-    height : np.ndarray
-        3D Array of fuel fuel height (m) values in the format exported by DUET:
+    depth : np.ndarray
+        3D Array of fuelbd depth (m) values in the format exported by DUET:
         Grass height in first layer, litter depth for each tree species in subsequent
         layers.
     duet_version : str
@@ -43,22 +46,22 @@ class DuetRun:
 
     def __init__(
         self,
-        density: np.ndarray,
-        height: np.ndarray,
+        loading: np.ndarray,
+        depth: np.ndarray,
         moisture: np.ndarray,
         duet_version: str,
     ):
-        self.density = density
+        self.loading = loading
         self.moisture = moisture
-        self.height = height
+        self.depth = depth
         self.duet_version = duet_version
 
     def to_quicfire(
         self,
         directory: str | Path,
-        density: bool = True,
+        loading: bool = True,
         moisture: bool = True,
-        height: bool = True,
+        depth: bool = True,
         overwrite: bool = False,
     ) -> None:
         """
@@ -69,12 +72,12 @@ class DuetRun:
         ----------
         directory : str | Path
             Path to directory for writing QUIC-fire files
-        density : bool
-            Whether to export the bulk density array. Defaults to True.
+        loading : bool
+            Whether to export the fuel loading array. Defaults to True.
         moisture : bool
             Whether to export the moisture content array. Defaults to True.
-        height : bool
-            Whether to export the fuel height (depth) arra. Defaults to True.
+        depth : bool
+            Whether to export the fuelbed depth array. Defaults to True.
         overwrite : bool
             Whether to overwrite trees*.dat files already present in the directory.
             If files exist, raises an error if True, warning if False. Defaults to False.
@@ -104,9 +107,9 @@ class DuetRun:
                     f"File(s) {to_overwrite} already exist(s) in {directory}. "
                     f"Please set overwrite = True."
                 )
-        if density:
-            if self.density is not None:
-                treesrhof = self._integrate_all("density")
+        if loading:
+            if self.loading is not None:
+                treesrhof = self._integrate_all("loading")
                 write_array_to_dat(treesrhof, "treesrhof.dat", directory)
                 written_files.append("treesrhof.dat")
         if moisture:
@@ -114,9 +117,9 @@ class DuetRun:
                 treesmoist = self._integrate_all("moisture")
                 write_array_to_dat(treesmoist, "treesmoist.dat", directory)
                 written_files.append("treesmoist.dat")
-        if height:
-            if self.height is not None:
-                treesfueldepth = self._integrate_all("height")
+        if depth:
+            if self.depth is not None:
+                treesfueldepth = self._integrate_all("depth")
                 write_array_to_dat(treesfueldepth, "treesfueldepth.dat", directory)
                 written_files.append("treesfueldepth.dat")
         if len(written_files) == 0:
@@ -150,8 +153,8 @@ class DuetRun:
             shape (1,ny,nx).
 
         fuel_parameter : str
-            Fuel parameter of desired array. Must be one of "density", "moisture", or
-            "height".
+            Fuel parameter of desired array. Must be one of "loading", "moisture", or
+            "depth".
 
         Returns
         -------
@@ -173,29 +176,29 @@ class DuetRun:
             return self.__dict__[fuel_parameter][2, :, :].copy()
 
     def _integrate_all(self, fuel_parameter: str) -> np.ndarray:
-        if fuel_parameter == "density":
-            return np.sum(self.density, axis=0)
+        if fuel_parameter == "loading":
+            return np.sum(self.loading, axis=0)
         if fuel_parameter == "moisture":
-            return _density_weighted_average(self.moisture, self.density)
-        if fuel_parameter == "height":
-            return np.max(self.height, axis=0)
+            return _loading_weighted_average(self.moisture, self.loading)
+        if fuel_parameter == "depth":
+            return np.max(self.depth, axis=0)
 
     def _integrate_litter(self, fuel_parameter: str) -> np.ndarray:
-        if fuel_parameter == "density":
-            return np.sum(self.density[1:, :, :], axis=0)
+        if fuel_parameter == "loading":
+            return np.sum(self.loading[1:, :, :], axis=0)
         if fuel_parameter == "moisture":
-            return _density_weighted_average(
-                self.moisture[1:, :, :], self.density[1:, :, :]
+            return _loading_weighted_average(
+                self.moisture[1:, :, :], self.loading[1:, :, :]
             )
-        if fuel_parameter == "height":
-            return np.max(self.height[1:, :, :], axis=0)
+        if fuel_parameter == "depth":
+            return np.max(self.depth[1:, :, :], axis=0)
 
     def _validate_input_moisture(self, moisture: np.ndarray):
-        if moisture.shape != self.density.shape:
+        if moisture.shape != self.loading.shape:
             raise ValueError(
-                f"Input array shape {moisture.shape} must match existing arrays {self.density.shape}."
+                f"Input array shape {moisture.shape} must match existing arrays {self.loading.shape}."
             )
-        if self.density[np.where(moisture == 0)].any() != 0:
+        if self.loading[np.where(moisture == 0)].any() != 0:
             raise ValueError(
                 "Value of moisture array cannot be zero where fuel is present"
             )
@@ -217,7 +220,7 @@ class DuetRun:
                 f"Fuel type {fuel_type} not supported for DUET version {self.duet_version}. "
                 f"Must be one of {fueltypes_allowed.get(self.duet_version)}"
             )
-        parameters_allowed = ["density", "moisture", "height"]
+        parameters_allowed = ["loading", "moisture", "depth"]
         if fuel_parameter not in parameters_allowed:
             raise ValueError(
                 f"Fuel parameter {fuel_parameter} not supported. Must be one of {parameters_allowed}"
@@ -296,7 +299,7 @@ class FuelParameter:
     Attributes
     ----------
     parameter : str
-        Fuel parameter for which targets should be set. Must be one of "density", "moisture", or "height".
+        Fuel parameter for which targets should be set. Must be one of "loading", "moisture", or "depth".
     fuel_types : list[str]
         Fuel type(s) to which targets should be set. May be any of "grass", "litter",
         "coniferous", "deciduous", or "all".
@@ -324,7 +327,7 @@ class FuelParameter:
         return fuel_types
 
     def _validate_fuel_parameter(self, parameter):
-        fuel_parameters_allowed = ["density", "moisture", "height"]
+        fuel_parameters_allowed = ["loading", "moisture", "depth"]
         if parameter not in fuel_parameters_allowed:
             raise ValueError(
                 f"Fuel parameter {parameter} not supported. Must be one of {fuel_parameters_allowed}"
@@ -332,8 +335,15 @@ class FuelParameter:
         return parameter
 
 
-def import_duet(
-    directory: str | Path, nx: int, ny: int, nsp: int, version: str = "v2"
+def import_duet_manual(
+    directory: str | Path,
+    loading_grid_name: str,
+    moisture_grid_name: str,
+    depth_grid_name: str,
+    nx: int,
+    ny: int,
+    nsp: int,
+    version: str,
 ) -> DuetRun:
     """
     Creates a DuetRun object from DUET output files
@@ -342,15 +352,21 @@ def import_duet(
     ----------
     directory : str | Path
         Path to directory storing the DUET output files surface_rhof.dat and surface_depth.dat
+    loading_grid_name: str
+        File name of fuel loading (bulk density) DUET output.
+    moisture_grid_name: str
+        File name of fuel moisture DUET output.
+    depth_grid_name: str
+        File name of fuelbed depth DUET output.
     nx: int
-        Number of DUET domain cells in the x-direction
+        Number of DUET domain cells in the x-direction.
     ny: int
-        Number of DUET domain cells in the y-direction
+        Number of DUET domain cells in the y-direction.
     nsp: int
         Number of vegetation species (tree species + grass) in the DUET outputs.
         Must be 2 (grass and litter) for DUET v1.
     version: str
-        DUET version that produced the outputs. Must be one of ["v1","v2"]. Defaults to "v2".
+        DUET version that produced the outputs. Must be one of ["v1","v2"].
 
     Returns
     -------
@@ -364,43 +380,37 @@ def import_duet(
     if isinstance(directory, str):
         directory = Path(directory)
 
-    name_dict = {
-        "rhof": {"v1": "surface_rhof.dat", "v2": "surface_rhof_layered.dat"},
-        "depth": {"v1": "surface_depth.dat", "v2": "surface_depth_layered.dat"},
-        "moist": {"v1": "surface_moist.dat", "v2": "surface_moist_layered.dat"},
-    }
-
-    density_nsp = read_dat_to_array(
+    loading_nsp = read_dat_to_array(
         directory=directory,
-        filename=name_dict["rhof"].get(version),
+        filename=loading_grid_name,
         nx=nx,
         ny=ny,
         nsp=nsp,
     )
-    height_nsp = read_dat_to_array(
+    depth_nsp = read_dat_to_array(
         directory=directory,
-        filename=name_dict["depth"].get(version),
+        filename=depth_grid_name,
         nx=nx,
         ny=ny,
         nsp=nsp,
     )
     moisture_nsp = read_dat_to_array(
         directory=directory,
-        filename=name_dict["moist"].get(version),
+        filename=moisture_grid_name,
         nx=nx,
         ny=ny,
         nsp=nsp,
     )
     if version == "v1":  # arrays are kept as-is
-        density = density_nsp.copy()
-        height = height_nsp.copy()
+        loading = loading_nsp.copy()
+        depth = depth_nsp.copy()
         moisture = moisture_nsp.copy()
     if version == "v2":
-        density = np.zeros((3, ny, nx))
-        height = np.zeros((3, ny, nx))
+        loading = np.zeros((3, ny, nx))
+        depth = np.zeros((3, ny, nx))
         moisture = np.zeros((3, ny, nx))
-        density[0, :, :] = density_nsp[0, :, :]
-        height[0, :, :] = height_nsp[0, :, :]
+        loading[0, :, :] = loading_nsp[0, :, :]
+        depth[0, :, :] = depth_nsp[0, :, :]
         moisture[0, :, :] = moisture_nsp[0, :, :]
 
         # identify which species are deciduous and coniferous
@@ -409,43 +419,98 @@ def import_duet(
         deciduous_indices = [i for i, v in groups.items() if v == "deciduous"]
 
         # for each parameter, coniferous is layer 1, deciduous is layer 2
-        density[1, :, :] = (
-            density_nsp[coniferous_indices].sum(axis=0)
+        loading[1, :, :] = (
+            loading_nsp[coniferous_indices].sum(axis=0)
             if coniferous_indices
-            else np.zeros(density.shape[1:])
+            else np.zeros(loading.shape[1:])
         )
-        density[2, :, :] = (
-            density_nsp[deciduous_indices].sum(axis=0)
+        loading[2, :, :] = (
+            loading_nsp[deciduous_indices].sum(axis=0)
             if deciduous_indices
-            else np.zeros(density.shape[1:])
+            else np.zeros(loading.shape[1:])
         )
-        height[1, :, :] = (
-            height_nsp[coniferous_indices].sum(axis=0)
+        depth[1, :, :] = (
+            depth_nsp[coniferous_indices].sum(axis=0)
             if coniferous_indices
-            else np.zeros(height.shape[1:])
+            else np.zeros(depth.shape[1:])
         )
-        height[2, :, :] = (
-            height_nsp[deciduous_indices].sum(axis=0)
+        depth[2, :, :] = (
+            depth_nsp[deciduous_indices].sum(axis=0)
             if deciduous_indices
-            else np.zeros(height.shape[1:])
+            else np.zeros(depth.shape[1:])
         )
         moisture[1, :, :] = (
-            _density_weighted_average(
-                moisture_nsp[coniferous_indices], density_nsp[coniferous_indices]
+            _loading_weighted_average(
+                moisture_nsp[coniferous_indices], loading_nsp[coniferous_indices]
             )
             if coniferous_indices
             else np.zeros(moisture.shape[1:])
         )
         moisture[2, :, :] = (
-            _density_weighted_average(
-                moisture_nsp[deciduous_indices], density_nsp[deciduous_indices]
+            _loading_weighted_average(
+                moisture_nsp[deciduous_indices], loading_nsp[deciduous_indices]
             )
             if deciduous_indices
-            else np.zeros(density.shape[1:])
+            else np.zeros(loading.shape[1:])
         )
 
     return DuetRun(
-        density=density, height=height, moisture=moisture, duet_version=version
+        loading=loading, depth=depth, moisture=moisture, duet_version=version
+    )
+
+
+def import_duet(directory: Path | str, version: str = "v2") -> DuetRun:
+    """
+    Creates a DuetRun object from DUET input and output files. Assumes all
+    files from a DUET run are present and unaltered. To import a DUET run
+    manually, use `import_duet_manual`.
+
+    Parameters
+    ----------
+    directory : str | Path
+        Path to directory storing the DUET output files surface_rhof.dat and surface_depth.dat
+        and the DUET input files duet.in and treesspcd.dat
+    version: str
+        DUET version that produced the outputs. Must be one of ["v1","v2"]. Defaults to "v2".
+
+    Returns
+    -------
+    Instance of class DuetRun
+    """
+    if isinstance(directory, str):
+        directory = Path(directory)
+
+    supported = ["v1", "v2"]
+    if version not in supported:
+        raise ValueError(
+            f"Version {version} not supported. Please use one of {supported}"
+        )
+
+    input_file = InputFile.from_directory(directory)
+    nx = input_file.nx
+    ny = input_file.ny
+    species_list = _read_surface_species(directory)
+    nsp = len(species_list) + 1  # number of tree species plus grass
+
+    name_dict = {
+        "rhof": {"v1": "surface_rhof.dat", "v2": "surface_rhof_layered.dat"},
+        "depth": {"v1": "surface_depth.dat", "v2": "surface_depth_layered.dat"},
+        "moist": {"v1": "surface_moist.dat", "v2": "surface_moist_layered.dat"},
+    }
+
+    loading_grid_name = name_dict["rhof"].get(version)
+    moisture_grid_name = name_dict["moist"].get(version)
+    depth_grid_name = name_dict["depth"].get(version)
+
+    return import_duet_manual(
+        directory,
+        loading_grid_name,
+        moisture_grid_name,
+        depth_grid_name,
+        nx,
+        ny,
+        nsp,
+        version,
     )
 
 
@@ -513,36 +578,36 @@ def set_fuel_parameter(parameter: str, **kwargs: Targets):
     return FuelParameter(parameter, fuel_types, targets)
 
 
-def set_density(**kwargs: Targets):
+def set_loading(**kwargs: Targets):
     """
-    Sets bulk density calibration targets for grass, litter, both separately, or all
+    Sets fuel loading calibration targets for grass, litter, both separately, or all
     fuel types together.
 
     Parameters
     ----------
     grass : Targets | None
-        Grass calibration targets. Only the grass layer of the DUET bulk density
+        Grass calibration targets. Only the grass layer of the DUET fuel loading
         array will be calibrated.
     litter : Targets | None
         Litter calibration targets. Only the litter layer(s) of the DUET
-        bulk density array will be calibrated. Coniferous and deciduous litter will
+        fuel loading array will be calibrated. Coniferous and deciduous litter will
         be calibrated together.
     coniferous : Targets | None
         Coniferous litter calibration targets. Only the coniferous litter layer of
         the DUET parameter array will be calibrated.
     deciduous : Targets | None
         Deciduous litter calibration targets. Only the deciduous litter layer of
-        the DUET bulk density array will be calibrated.
+        the DUET fuel loading array will be calibrated.
     all : Targets | None
         Calibration targets for all (both) fuel types. All layers of the
-        DUET bulk density array will be calibrated together.
+        DUET fuel loading array will be calibrated together.
 
     Returns
     -------
     FuelParameter :
-        Object representing bulk density targets for each provided fuel type
+        Object representing fuel loading targets for each provided fuel type
     """
-    parameter = "density"
+    parameter = "loading"
     fuel_types = list(kwargs.keys())
     targets = list(kwargs.values())
 
@@ -585,36 +650,36 @@ def set_moisture(**kwargs: Targets):
     return FuelParameter(parameter, fuel_types, targets)
 
 
-def set_height(**kwargs: Targets):
+def set_depth(**kwargs: Targets):
     """
-    Sets height calibration targets for grass, litter, both separately, or all
+    Sets fuelbed depth calibration targets for grass, litter, both separately, or all
     fuel types together.
 
     Parameters
     ----------
     grass : Targets | None
-        Grass calibration targets. Only the grass layer of the DUET height
+        Grass calibration targets. Only the grass layer of the DUET depth
         array will be calibrated.
     litter : Targets | None
         Litter calibration targets. Only the litter layer(s) of the DUET
-        height array will be calibrated. Coniferous and deciduous litter will
+        depth array will be calibrated. Coniferous and deciduous litter will
         be calibrated together.
     coniferous : Targets | None
         Coniferous litter calibration targets. Only the coniferous litter layer of
         the DUET parameter array will be calibrated.
     deciduous : Targets | None
         Deciduous litter calibration targets. Only the deciduous litter layer of
-        the DUET height array will be calibrated.
+        the DUET depth array will be calibrated.
     all : Targets | None
         Calibration targets for all (both) fuel types. All layers of the
-        DUET height array will be calibrated together.
+        DUET depth array will be calibrated together.
 
     Returns
     -------
     FuelParameter :
-        Object representing height targets for each provided fuel type
+        Object representing depth targets for each provided fuel type
     """
-    parameter = "height"
+    parameter = "depth"
     fuel_types = list(kwargs.keys())
     targets = list(kwargs.values())
 
@@ -711,28 +776,28 @@ def _get_array_to_calibrate(duet_run: DuetRun, fueltype: str, fuelparam: str):
     Identifies and returns the layer of the duet outputs should be processed based
     on the fuel parameter and fuel type.
     """
-    if fuelparam == "density":
+    if fuelparam == "loading":
         if fueltype == "grass":
-            return duet_run.density[0, :, :].copy()
+            return duet_run.loading[0, :, :].copy()
         if fueltype == "coniferous":
-            return duet_run.density[1, :, :].copy()
+            return duet_run.loading[1, :, :].copy()
         if fueltype == "deciduous":
-            return duet_run.density[2, :, :].copy()
+            return duet_run.loading[2, :, :].copy()
         if fueltype == "litter":
-            return duet_run.density[1:, :, :].sum(axis=0)
+            return duet_run.loading[1:, :, :].sum(axis=0)
         else:
-            return np.sum(duet_run.density, axis=0)
-    if fuelparam == "height":
+            return np.sum(duet_run.loading, axis=0)
+    if fuelparam == "depth":
         if fueltype == "grass":
-            return duet_run.height[0, :, :].copy()
+            return duet_run.depth[0, :, :].copy()
         if fueltype == "coniferous":
-            return duet_run.height[1, :, :].copy()
+            return duet_run.depth[1, :, :].copy()
         if fueltype == "deciduous":
-            return duet_run.height[2, :, :].copy()
+            return duet_run.depth[2, :, :].copy()
         if fueltype == "litter":
-            return duet_run.height[1:, :, :].sum(axis=0)
+            return duet_run.depth[1:, :, :].sum(axis=0)
         else:
-            return np.max(duet_run.height, axis=0)
+            return np.max(duet_run.depth, axis=0)
     if fuelparam == "moisture":
         if fueltype == "grass":
             return duet_run.moisture[0, :, :].copy()
@@ -741,27 +806,27 @@ def _get_array_to_calibrate(duet_run: DuetRun, fueltype: str, fuelparam: str):
         if fueltype == "deciduous":
             return duet_run.moisture[2, :, :].copy()
         if fueltype == "litter":
-            return _density_weighted_average(
-                duet_run.moisture[1:, :, :], duet_run.density[1:, :, :]
+            return _loading_weighted_average(
+                duet_run.moisture[1:, :, :], duet_run.loading[1:, :, :]
             )
         else:
-            density_weights = duet_run.density.copy()
-            density_weights[density_weights == 0] = 0.01
-            return np.average(duet_run.moisture, weights=density_weights, axis=0)
+            loading_weights = duet_run.loading.copy()
+            loading_weights[loading_weights == 0] = 0.01
+            return np.average(duet_run.moisture, weights=loading_weights, axis=0)
 
 
 def _duplicate_duet_run(duet_run: DuetRun) -> DuetRun:
     """
     Makes a copy of a DuetRun object.
     """
-    new_density = duet_run.density.copy() if duet_run.density is not None else None
+    new_loading = duet_run.loading.copy() if duet_run.loading is not None else None
     new_moisture = duet_run.moisture.copy() if duet_run.moisture is not None else None
-    new_height = duet_run.height.copy() if duet_run.height is not None else None
+    new_depth = duet_run.depth.copy() if duet_run.depth is not None else None
 
     new_duet = DuetRun(
-        density=new_density,
+        loading=new_loading,
         moisture=new_moisture,
-        height=new_height,
+        depth=new_depth,
         duet_version=duet_run.duet_version,
     )
 
@@ -842,7 +907,7 @@ def _add_calibrated_array(
     """
     Replaces or creates calibrated array(s) in a DuetRun object.
     """
-    for param in ["density", "moisture", "height"]:
+    for param in ["loading", "moisture", "depth"]:
         if fuelparam == param:
             if fueltype == "grass":
                 duet_to_calibrate.__dict__[param][0, :, :] = calibrated_array
@@ -869,38 +934,36 @@ def _separate_2d_array(
     fuel parameter.
     """
     if fueltype == "all":
-        separated = np.zeros(duet_run.density.shape)
-        weights = np.zeros(duet_run.density.shape)
+        separated = np.zeros(duet_run.loading.shape)
+        weights = np.zeros(duet_run.loading.shape)
     if fueltype == "litter":
-        separated = np.zeros(duet_run.density[1:, :, :].shape)
-        weights = np.zeros(duet_run.density[1:, :, :].shape)
-    if param == "density":
+        separated = np.zeros(duet_run.loading[1:, :, :].shape)
+        weights = np.zeros(duet_run.loading[1:, :, :].shape)
+    if param == "loading":
         for s in range(separated.shape[0]):
-            density = (
-                duet_run.density[1:, :, :] if fueltype == "litter" else duet_run.density
+            loading = (
+                duet_run.loading[1:, :, :] if fueltype == "litter" else duet_run.loading
             )
-            density_sum = np.sum(density, axis=0)
+            loading_sum = np.sum(loading, axis=0)
             weights[s, :, :] = np.where(
-                density_sum != 0, density[s, :, :] / density_sum, 0
+                loading_sum != 0, loading[s, :, :] / loading_sum, 0
             )
             separated[s, :, :] = calibrated * weights[s, :, :]
     if param == "moisture":
-        for s in range(duet_run.density.shape[0]):
+        for s in range(duet_run.loading.shape[0]):
             separated[s, :, :][np.where(duet_run.moisture[s, :, :] == 0)] = 0
-    if param == "height":
+    if param == "depth":
         for s in range(separated.shape[0]):
-            height = (
-                duet_run.height[1:, :, :] if fueltype == "litter" else duet_run.height
-            )
+            depth = duet_run.depth[1:, :, :] if fueltype == "litter" else duet_run.depth
             if fueltype == "all":
-                height_max = np.max(height, axis=0)
+                depth_max = np.max(depth, axis=0)
                 weights[s, :, :] = np.where(
-                    height_max != 0, height[s, :, :] / height_max, 0
+                    depth_max != 0, depth[s, :, :] / depth_max, 0
                 )
             if fueltype == "litter":
-                height_sum = np.sum(height, axis=0)
+                depth_sum = np.sum(depth, axis=0)
                 weights[s, :, :] = np.where(
-                    height_sum != 0, height[s, :, :] / height_sum, 0
+                    depth_sum != 0, depth[s, :, :] / depth_sum, 0
                 )
             separated[s, :, :] = calibrated * weights[s, :, :]
     return separated
@@ -921,16 +984,31 @@ def _truncate_at_0(arr: np.ndarray) -> np.ndarray:
     return arr2
 
 
-def _density_weighted_average(moisture: np.ndarray, density: np.ndarray) -> np.ndarray:
+def _loading_weighted_average(moisture: np.ndarray, loading: np.ndarray) -> np.ndarray:
     """
-    Vertically integrate moisture by a weighted mean, where the weights comd from cell bulk density
+    Vertically integrate moisture by a weighted mean, where the weights come from cell bulk density
     """
-    weights = _maxmin_calibration(density, max=1.0, min=0)
+    weights = _maxmin_calibration(loading, max=1.0, min=0)
     weights[weights == 0] = 0.01
     masked = np.ma.masked_array(moisture, moisture == 0)
     averaged = np.ma.average(masked, axis=0, weights=weights)
     integrated = np.ma.filled(averaged, 0)
     return integrated
+
+
+# def _read_treesspcd(dir: Path, nx: int, ny: int, nz: int) -> int:
+#     """
+#     Interprets number of species from treesspcd.dat. Broken right now.
+#     """
+#     treesspcd = read_dat_to_array(dir, "treesspcd.dat", nx, ny, nz=nz, dtype=np.int32)
+#     nsp = len(np.unique(treesspcd))
+#     return nsp  # number of tree species + grass
+
+
+def _read_surface_species(dir: Path) -> list:
+    with open(dir / "surface_species.dat") as dat:
+        species = dat.readlines()
+    return species
 
 
 def _group_litter_species(dir: Path) -> dict:

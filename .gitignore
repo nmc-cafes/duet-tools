@@ -137,12 +137,10 @@ dmypy.json
 dev/
 tests/dev/
 tests/tmp/
-treesrhof.dat
 treesmoist.dat
 treesfueldepth.dat
 treesss.dat
 treesspcd.dat
-*.in
 *.exe
 DUETInputs
 surface_ss_layered.dat
