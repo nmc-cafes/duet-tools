@@ -4,3 +4,5 @@ shapely
 pyproj
 landfire[geospatial]
 rasterio
+pyshp
+geojson
