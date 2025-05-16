@@ -4,9 +4,13 @@ Utility functions for DUET tools modules
 
 from __future__ import annotations
 
-from pathlib import Path
+import geojson
 import numpy as np
+from pathlib import Path
 from scipy.io import FortranFile
+import shapefile  # pyshp
+import tempfile
+import zipfile
 
 
 def read_dat_to_array(
@@ -114,3 +118,48 @@ def write_array_to_dat(
     # Written in row-major order
     with FortranFile(Path(output_dir, dat_name), "w") as f:
         f.write_record(array)
+
+
+def read_shapefile_to_geojson(path: Path) -> geojson.Polygon:
+    """
+    Read a shapefile and convert to a geojson polgyon. May be used to
+    query LANDFIRE data. Assumes the shapefile has Polygon geometry.
+    Only the first feature is converted to a geojson.
+
+    Parameters
+    ----------
+    path : str
+        Path to shapefile. File may be compressed (.zip), or uncompressed (.shp)
+        with constituent files in the same directory.
+
+    Returns
+    -------
+    A geojson Polygon object.
+    """
+    if path.suffix == ".zip":
+        with zipfile.ZipFile(
+            path, "r"
+        ) as zip_ref, tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            zip_ref.extractall(tmpdir_path)
+            shp_files = list(tmpdir_path.glob("*.shp"))
+            if not shp_files:
+                raise FileNotFoundError("No .shp file found in the zip archive.")
+            shp_path = shp_files[0]
+            reader = shapefile.Reader(str(shp_path))
+    else:
+        if not path.exists():
+            raise FileNotFoundError(f"Shapefile not found: {path}")
+        reader = shapefile.Reader(str(path))
+
+    shape = reader.shape(0)
+    if shape.shapeType != shapefile.POLYGON:
+        raise ValueError("Shapefile does not contain a polygon.")
+
+    coords = shape.points
+    parts = shape.parts + [len(coords)]
+
+    rings = [coords[parts[i] : parts[i + 1]] for i in range(len(parts) - 1)]
+    polygon = geojson.Polygon([ring for ring in rings])
+
+    return polygon
