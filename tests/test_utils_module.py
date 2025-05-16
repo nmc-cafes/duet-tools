@@ -9,9 +9,6 @@ import geojson
 import numpy as np
 from pathlib import Path
 from scipy.io import FortranFile
-import shapefile  # pyshp
-import tempfile
-import zipfile
 
 from duet_tools.utils import (
     read_dat_to_array,
