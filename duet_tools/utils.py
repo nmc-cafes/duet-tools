@@ -157,7 +157,7 @@ def read_shapefile_to_geojson(path: Path) -> geojson.Polygon:
         raise ValueError("Shapefile does not contain a polygon.")
 
     coords = shape.points
-    parts = shape.parts + [len(coords)]
+    parts = list(shape.parts) + [len(coords)]
 
     rings = [coords[parts[i] : parts[i + 1]] for i in range(len(parts) - 1)]
     polygon = geojson.Polygon([ring for ring in rings])
