@@ -106,6 +106,7 @@ class InputFile:
         """
         if isinstance(directory, str):
             directory = Path(directory)
+        self._validate()
 
         out_path = directory / "duet.in"
         with open(out_path, "w") as f:
@@ -155,3 +156,27 @@ class InputFile:
             wind_variability=float(lines[8].strip().split("!")[0]),
             duration=int(lines[9].strip().split("!")[0]),
         )
+
+    def _validate(self):
+        int_list = [self.nx, self.ny, self.nz, self.random_seed, self.duration]
+        float_list = [
+            self.dx,
+            self.dy,
+            self.dz,
+            self.wind_direction,
+            self.wind_variability,
+        ]
+        deg_list = [self.wind_direction, self.wind_variability]
+        for attr in int_list:
+            if not isinstance(attr, int):
+                raise ValueError(f"{attr} must be of type int")
+        for attr in float_list:
+            if not isinstance(attr, float):
+                if not isinstance(attr, int):
+                    raise ValueError(f"{attr} must be of type float or int")
+        for attr in deg_list:
+            if not 0 <= self.wind_direction < 360:
+                raise ValueError(f"{attr} must be in range [0,360)")
+        for attr in self.__dict__.values():
+            if attr < 0:
+                raise ValueError(f"{attr} must be positive")
