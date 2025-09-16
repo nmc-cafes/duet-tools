@@ -22,8 +22,8 @@ bibliography: paper.bib
 
 Fuel modeling is a key component for understanding dynamics of fire-vegetation interactions across landscapes
 Three-dimensional (3D) fuel models are used as inputs for fire behavior models to develop strategies for prescribed fire application and wildfire risk assessment and mitigation.
-Distribution of Understory using Elliptical Transport (DUET) is a recently developed program for creating surface fuel inputs for 3D fuel models [@McDanold2023].
-DUET was developed at the Los Alamos National Laboratory for creating inputs to physics-based 3D fire behavior models like FIRETEC [@Linn2002] and QUIC-Fire [@Linn2020a].
+Distribution of Understory using Elliptical Transport (DUET) is a recently developed program for creating surface fuel inputs for 3D fuel models [@mcdanold_duet_2023].
+DUET was developed at the Los Alamos National Laboratory for creating inputs to physics-based 3D fire behavior models like FIRETEC [@linn_studying_2002] and QUIC-Fire [@Linn2020a].
 It simulates litter fall from 3D tree canopy inputs and grass growth, producing spatially heterogeneous estimates of fine fuel distribution and characteristics in forested domains.
 
 Users of DUET may wish to parameterize simulations or modify outputs.
@@ -101,7 +101,7 @@ DUET's outputs include separate files for bulk density (loading), fuel moisture 
 
 ## Landfire Module
 
-The `landfire` module facilitates a data query of from the LANDFIRE database (REF) to be used to calibrate DUET outputs. The module leverages the *landfire* python package (REF) to download fuels data, then converts those data to calibration targets. Fuels data are derived from the Scott and Burgan 40 Fire Behavior Fuel Models (REF).
+The `landfire` module facilitates a data query of from the LANDFIRE database [@la_puma_landfire_2023] to be used to calibrate DUET outputs. The module leverages the *landfire* python package [@landfire_python_2023] to download fuels data, then converts those data to calibration targets. Fuels data are derived from the Scott and Burgan 40 Fire Behavior Fuel Models [@scott_standard_2005].
 
 # Conclusion
 
@@ -111,6 +111,6 @@ The package streamlines interactions with idiosyncratic data structures, facilit
 
 # Acknowledgements
 
-Many thanks to Jenna McDanold for the continued development of the DUET program. I am also grateful for the guidance and mentorship from Anthony Marcozzi, as well as the support from Scott Pokswinski and the rest the NMC CAFES team. Special thanks to Rachel Loehman for encouraging and supporting the development of this tool.
+Many thanks to Jenna McDanold for the introduction and continued development of the DUET program. I am also grateful for the guidance and mentorship from Anthony Marcozzi, as well as the support from Scott Pokswinski and the rest the NMC CAFES team. Special thanks to Rachel Loehman for encouraging and supporting the development of this tool.
 
 # References
