@@ -177,6 +177,6 @@ class InputFile:
         for attr in deg_list:
             if not 0 <= self.wind_direction < 360:
                 raise ValueError(f"{attr} must be in range [0,360)")
-        for attr in self.__dict__.keys():
+        for attr in self.__dict__.values():
             if attr < 0:
                 raise ValueError(f"{attr} must be positive")
