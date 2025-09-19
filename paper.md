@@ -20,13 +20,13 @@ bibliography: paper.bib
 
 # Summary
 
-Fuel modeling is a key component for understanding dynamics of fire-vegetation interactions across landscapes
+Fuel modeling is a key avenue for understanding dynamics of fire-vegetation interactions across landscapes.
 Three-dimensional (3D) fuel models are used as inputs for fire behavior models to develop strategies for prescribed fire application and wildfire risk assessment and mitigation.
 Distribution of Understory using Elliptical Transport (DUET) is a recently developed program for creating surface fuel inputs for 3D fuel models [@mcdanold_duet_2023].
 DUET was developed at the Los Alamos National Laboratory for creating inputs to physics-based 3D fire behavior models like FIRETEC [@linn_studying_2002] and QUIC-Fire [@Linn2020a].
 It simulates litter fall from 3D tree canopy inputs and grass growth, producing spatially heterogeneous estimates of fine fuel distribution and characteristics in forested domains.
 
-Users of DUET may wish to parameterize simulations or modify outputs.
+Users of DUET may wish to parameterize simulations or modify outputs, but to date there are no programmatic tools for interacting with DUET inputs or outputs.
 Here we introduce `duet-tools`, a Python package that streamlines the process for creating DUET simulation input files and calibrating the values in DUET output files.
 The package handles two primary aspects of the DUET workflow: (1) programmatic creation and management of the DUET input file with validation and documentation, and (2) calibration of fine fuel outputs towards values provided by online data sources or directly from the user.
 By simplifying these tasks, `duet-tools` allows modelers and managers to more easily interact with the DUET program while incorporating locally-accurate fuels data.
@@ -67,6 +67,7 @@ This approach solves two critical problems:
 The outputs of the DUET program are saved as 3D or 4D data arrays that are idiosyncratic both in their formatting and content.
 The `calibration` module provides a simplified interface for loading and organizing the DUET outputs into named Python data structures.
 Once outputs are loaded into a `DuetRun` object, users can 'calibrate', or modify, the values corresponding to available fuel parameters, such as loading or moisture, of available fuel types, such as grass or litter.
+The goal of calibration is to shift, stretch, and/or squeeze the magnitudes of fuel parameter values without altering the relative spatial distribution of fuels predicted by DUET.
 The target values for calibration can be provided as data ranges or as the center and spread of a distribution.
 These calibration methods can be 'mixed and matched' across fuel types and parameters, enhancing the flexibility of surface fuel modeling.
 
@@ -83,7 +84,7 @@ All input file parameters are validated upon writing. Validation includes type c
 
 2. The `DuetRun` class stores and organizes the outputs of a DUET simulation. It includes the following functionality:
    - Loading DUET output arrays stored in the specialized `.dat` format, automatically parsing them into fuel parameters and fuel types.
-    - Converting outputs to standard python formats such as NumPy arrays
+   - Converting outputs to standard python formats such as NumPy arrays
    - Facilitating flexible calibration through a suite of functions described below.
    - Writing data arrays to the expected format for the 3D fire models QUIC-Fire and FIRETEC
 
@@ -97,7 +98,7 @@ The primary use case for `duet-tools` involves calibrating the magnitudes of val
    - Target value ranges, to which values are proportionally shifted and scaled
    - Target value distributions, where the data are shifted to a supplied center (mean) and scaled to a supplied spread (standard deviation).
 
-DUET's outputs include separate files for bulk density (loading), fuel moisture content, and fuel height. For these fuel parameters, `duet-tools` isolates grass, deciduous litter, and coniferous litter into separate fuel types. Calibration targets may be applied to any combination of fuel type and fuel parameter. Targets are either supplied by the user as function arguments, or obtained from online data sources (see Landfire Module below).
+DUET's outputs include separate files for bulk density (loading), fuel moisture content, and fuel height (depth). For these fuel parameters, `duet-tools` isolates grass, deciduous litter, and coniferous litter into separate fuel types. Calibration targets may be applied to any combination of fuel type and fuel parameter. Targets are either supplied by the user as function arguments, or obtained from online data sources (see Landfire Module below).
 
 ## Landfire Module
 
@@ -111,6 +112,6 @@ The package streamlines interactions with idiosyncratic data structures, facilit
 
 # Acknowledgements
 
-Many thanks to Jenna McDanold for the introduction and continued development of the DUET program. I am also grateful for the guidance and mentorship from Anthony Marcozzi, as well as the support from Scott Pokswinski and the rest the NMC CAFES team. Special thanks to Rachel Loehman for encouraging and supporting the development of this tool.
+Many thanks to Jenna McDanold for the introduction and continued development of the DUET program. I am also grateful for the guidance and mentorship from Anthony Marcozzi, as well as the support from Scott Pokswinski and the rest the NMC CAFES team. Special thanks to Rachel Loehman for encouraging and supporting the development of this tool. The development of this package was funded by the U.S. Geological Survey grant XXXXXXXXXX.
 
 # References
