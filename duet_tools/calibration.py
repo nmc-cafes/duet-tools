@@ -945,8 +945,10 @@ def _separate_2d_array(
                 duet_run.loading[1:, :, :] if fueltype == "litter" else duet_run.loading
             )
             loading_sum = np.sum(loading, axis=0)
-            weights[s, :, :] = np.where(
-                loading_sum != 0, loading[s, :, :] / loading_sum, 0
+            not_zero = np.where(loading_sum != 0)
+            weights[s, :, :] = np.zeros((loading_sum.shape))
+            weights[s, :, :][not_zero] = (
+                loading[s, :, :][not_zero] / loading_sum[not_zero]
             )
             separated[s, :, :] = calibrated * weights[s, :, :]
     if param == "moisture":
@@ -955,16 +957,18 @@ def _separate_2d_array(
     if param == "depth":
         for s in range(separated.shape[0]):
             depth = duet_run.depth[1:, :, :] if fueltype == "litter" else duet_run.depth
-            if fueltype == "all":
-                depth_max = np.max(depth, axis=0)
-                weights[s, :, :] = np.where(
-                    depth_max != 0, depth[s, :, :] / depth_max, 0
-                )
-            if fueltype == "litter":
-                depth_sum = np.sum(depth, axis=0)
-                weights[s, :, :] = np.where(
-                    depth_sum != 0, depth[s, :, :] / depth_sum, 0
-                )
+            depth_weighting = (
+                np.sum(depth, axis=0)
+                if fueltype == "litter"
+                else np.max(
+                    depth, axis=0
+                )  # use max when grass is included because it will likely always overtop the litter
+            )
+            not_zero = np.where(depth_weighting != 0)
+            weights[s, :, :] = np.zeros((depth_weighting.shape))
+            weights[s, :, :][not_zero] = (
+                depth[s, :, :][not_zero] / depth_weighting[not_zero]
+            )
             separated[s, :, :] = calibrated * weights[s, :, :]
     return separated
 
