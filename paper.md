@@ -14,7 +14,7 @@ authors:
 affiliations:
  - name: New Mexico Consortium, Center for Applied Fire and Ecosystem Sciences, Los Alamos, NM, USA
    index: 1
-date: 15 September 2025
+date: 19 September 2025
 bibliography: paper.bib
 ---
 
@@ -48,7 +48,7 @@ To date, no standardized tool exists for managing the inputs and outputs of DUET
 3. Built-in functions for differentially calibrating fuel elements within DUET outputs based on targets supplied by the user or queried from online data sources.
 4. Comprehensive documentation with step-by-step how-to guides and example scripts
 
-By providing a convenient and intiuitive DUET interface, `duet-tools` enables fire modelers to more easily and accurately represent the surface fuels in their simulations.
+By providing a convenient and intuitive DUET interface, `duet-tools` enables fire modelers to more easily and accurately represent the surface fuels in their simulations.
 The package eases the coding burden for new DUET users, improves reproducibility, and broadens DUET's application space.
 
 # Key Features
@@ -66,7 +66,7 @@ This approach solves two critical problems:
 
 The outputs of the DUET program are saved as 3D or 4D data arrays that are idiosyncratic both in their formatting and content.
 The `calibration` module provides a simplified interface for loading and organizing the DUET outputs into named Python data structures.
-Once outputs are loaded into a `DuetRun` object, users can 'calibrate', or modyify, the values corresponding to available fuel parameters, such as loading or moisture, of available fuel types, such as grass or litter.
+Once outputs are loaded into a `DuetRun` object, users can 'calibrate', or modify, the values corresponding to available fuel parameters, such as loading or moisture, of available fuel types, such as grass or litter.
 The target values for calibration can be provided as data ranges or as the center and spread of a distribution.
 These calibration methods can be 'mixed and matched' across fuel types and parameters, enhancing the flexibility of surface fuel modeling.
 
@@ -105,9 +105,9 @@ The `landfire` module facilitates a data query of from the LANDFIRE database [@l
 
 # Conclusion
 
-`duet-tools` enables the programatic management and modification of DUET simulation inputs and outputs.
+`duet-tools` enables the programmatic management and modification of DUET simulation inputs and outputs.
 By allowing for the calibration of fuel values while retaining DUET's spatial predictions, the package provides a path for realistic and locally-accurate surface fuel representations for next-generation fire behavior modeling.
-The package streamlines interactions with idiosyncratic data structures, faciliting integration of DUET with fuel modeling platforms like FastFuels [@marcozzi_fastfuels_2025] and aiding with data visualization, analysis, and communication of results.
+The package streamlines interactions with idiosyncratic data structures, facilitating integration of DUET with fuel modeling platforms like FastFuels [@marcozzi_fastfuels_2025] and aiding with data visualization, analysis, and communication of results.
 
 # Acknowledgements
 
