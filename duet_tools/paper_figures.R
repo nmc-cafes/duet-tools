@@ -54,54 +54,6 @@ litter_stack <- c(original_litter, calibrated_litter)
 deciduous_stack <- c(original_deciduous, calibrated_deciduous)
 coniferous_stack <- c(original_coniferous, calibrated_coniferous)
 
-# ggplot() +
-#   geom_spatraster(data = loading_stack) +
-#   facet_wrap(~lyr) +
-#   scale_fill_scico(palette = "managua", 
-#                    direction = -1,
-#                    limits = c(0,4),
-#                    na.value = "yellow") +
-#   scale_x_continuous(expand = c(0,0)) +
-#   scale_y_continuous(expand = c(0,0)) +
-#   coord_fixed() +
-#   theme_bw()
-# 
-# ggplot() +
-#   geom_spatraster(data = grass_stack) +
-#   facet_wrap(~lyr) +
-#   scale_fill_scico(palette = "managua", 
-#                    direction = -1,
-#                    limits = c(0,2),
-#                    na.value = "yellow") +
-#   scale_x_continuous(expand = c(0,0)) +
-#   scale_y_continuous(expand = c(0,0)) +
-#   coord_fixed() +
-#   theme_bw()
-# 
-# ggplot() +
-#   geom_spatraster(data = deciduous_stack) +
-#   facet_wrap(~lyr) +
-#   scale_fill_scico(palette = "managua", 
-#                    direction = -1,
-#                    limits = c(0,0.4),
-#                    na.value = "yellow") +
-#   scale_x_continuous(expand = c(0,0)) +
-#   scale_y_continuous(expand = c(0,0)) +
-#   coord_fixed() +
-#   theme_bw()
-# 
-# ggplot() +
-#   geom_spatraster(data = coniferous_stack) +
-#   facet_wrap(~lyr) +
-#   scale_fill_scico(palette = "managua", 
-#                    direction = -1,
-#                    limits = c(0,2),
-#                    na.value = "yellow") +
-#   scale_x_continuous(expand = c(0,0)) +
-#   scale_y_continuous(expand = c(0,0)) +
-#   coord_fixed() +
-#   theme_bw()
-
 ###########
 og_loading_df <- rst_to_df(original_loading)
 og_grass_df <- rst_to_df(original_grass)
@@ -233,7 +185,7 @@ deciduous <- duet_df %>%
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank())
 
-figure <- coniferous + deciduous + grass + total + plot_layout(nrow = 1) + 
+figure <- coniferous + deciduous + grass + total + plot_layout(nrow = 1) +
   plot_annotation(title = bquote('Fine Fuel\nLoading (kg m'^-2*")"),
                   tag_levels = 'A')
 figure
