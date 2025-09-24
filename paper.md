@@ -69,7 +69,7 @@ The `calibration` module provides a simplified interface for loading and organiz
 Once outputs are loaded into a `DuetRun` object, users can 'calibrate', or modify, the values corresponding to available fuel parameters, such as loading or moisture, of available fuel types, such as grass or litter.
 The goal of calibration is to shift, stretch, and/or squeeze the magnitudes of fuel parameter values without altering the relative spatial distribution of fuels predicted by DUET \autoref{fig:1}.
 The target values for calibration can be provided as data ranges or as the center and spread of a distribution.
-These calibration methods can be 'mixed and matched' across fuel types and parameters, enhancing the flexibility of surface fuel modeling \autoref{fig:1}.
+These calibration methods can be 'mixed and matched' across fuel types and parameters, enhancing the flexibility of surface fuel modeling \autoref{fig:figure1}.
 
 # Implementation
 
@@ -112,7 +112,7 @@ The package streamlines interactions with idiosyncratic data structures, facilit
 
 # Figures
 
-![Caption for example figure.\label{fig:1}](figures-data/Plots/figure1.jpg)
+![Caption for example figure.\label{fig:figure1}](figures-data/Plots/figure1.jpg)
 
 # Acknowledgements
 
