@@ -14,7 +14,7 @@ authors:
 affiliations:
  - name: New Mexico Consortium, Center for Applied Fire and Ecosystem Sciences, Los Alamos, NM, USA
    index: 1
-date: 19 September 2025
+date: 24 September 2025
 bibliography: paper.bib
 ---
 
