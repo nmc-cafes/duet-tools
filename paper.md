@@ -67,7 +67,7 @@ This approach solves two critical problems:
 The outputs of the DUET program are saved as 3D or 4D data arrays that are idiosyncratic both in their formatting and content.
 The `calibration` module provides a simplified interface for loading and organizing the DUET outputs into named Python data structures.
 Once outputs are loaded into a `DuetRun` object, users can 'calibrate', or modify, the values corresponding to available fuel parameters, such as loading or moisture, of available fuel types, such as grass or litter.
-The goal of calibration is to shift, stretch, and/or squeeze the magnitudes of fuel parameter values without altering the relative spatial distribution of fuels predicted by DUET \autoref{fig:1}.
+The goal of calibration is to shift, stretch, and/or squeeze the magnitudes of fuel parameter values without altering the relative spatial distribution of fuels predicted by DUET \autoref{fig:figure1}.
 The target values for calibration can be provided as data ranges or as the center and spread of a distribution.
 These calibration methods can be 'mixed and matched' across fuel types and parameters, enhancing the flexibility of surface fuel modeling \autoref{fig:figure1}.
 
@@ -100,6 +100,29 @@ The primary use case for `duet-tools` involves calibrating the magnitudes of val
 
 DUET's outputs include separate files for bulk density (loading), fuel moisture content, and fuel height (depth). For these fuel parameters, `duet-tools` isolates grass, deciduous litter, and coniferous litter into separate fuel types. Calibration targets may be applied to any combination of fuel type and fuel parameter. Targets are either supplied by the user as function arguments, or obtained from online data sources (see Landfire Module below).
 
+Figure 1 provides an example of DUET calibration for different fuel types. Each fuel type was assigned a fuel loading target using either a range or a distribution.
+
+```
+# Import DUET outputs
+duet_run = import_duet(directory=duet_path)
+
+# Assign targets for each fuel type and fuel parameter
+coniferous_loading = assign_targets(method="maxmin", max=5.0, min=0)
+deciduous_loading = assign_targets(method="meansd", mean=0.5, sd=0.1)
+grass_loading = assign_targets(method="meansd", mean=0.5, sd=0.25)
+
+# Bring together fuel types for each parameter
+loading_targets = set_fuel_parameter(
+    parameter="loading",
+    grass=grass_loading,
+    deciduous=deciduous_loading,
+    coniferous=coniferous_loading,
+)
+
+# Calibrate the DUET run
+calibrated_duet = calibrate(duet_run=duet_run, fuel_parameter_targets=loading_targets)
+```
+
 ## Landfire Module
 
 The `landfire` module facilitates a data query of from the LANDFIRE database [@la_puma_landfire_2023] to be used to calibrate DUET outputs. The module leverages the *landfire* python package [@landfire_python_2023] to download fuels data, then converts those data to calibration targets. Fuels data are derived from the Scott and Burgan 40 Fire Behavior Fuel Models [@scott_standard_2005].
@@ -112,7 +135,7 @@ The package streamlines interactions with idiosyncratic data structures, facilit
 
 # Figures
 
-![Caption for example figure.\label{fig:figure1}](figures-data/Plots/figure1.jpg)
+![Figure 1. Example of DUET calibration. For each fuel type, the top row shows the original fuel loading outputs from DUET, and the bottom row shows the results of calibration.\label{fig:figure1}](figures-data/Plots/figure1.jpg)
 
 # Acknowledgements
 
