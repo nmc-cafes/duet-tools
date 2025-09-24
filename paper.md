@@ -67,9 +67,9 @@ This approach solves two critical problems:
 The outputs of the DUET program are saved as 3D or 4D data arrays that are idiosyncratic both in their formatting and content.
 The `calibration` module provides a simplified interface for loading and organizing the DUET outputs into named Python data structures.
 Once outputs are loaded into a `DuetRun` object, users can 'calibrate', or modify, the values corresponding to available fuel parameters, such as loading or moisture, of available fuel types, such as grass or litter.
-The goal of calibration is to shift, stretch, and/or squeeze the magnitudes of fuel parameter values without altering the relative spatial distribution of fuels predicted by DUET.
+The goal of calibration is to shift, stretch, and/or squeeze the magnitudes of fuel parameter values without altering the relative spatial distribution of fuels predicted by DUET \autoref{fig:1}.
 The target values for calibration can be provided as data ranges or as the center and spread of a distribution.
-These calibration methods can be 'mixed and matched' across fuel types and parameters, enhancing the flexibility of surface fuel modeling.
+These calibration methods can be 'mixed and matched' across fuel types and parameters, enhancing the flexibility of surface fuel modeling \autoref{fig:1}.
 
 # Implementation
 
@@ -109,6 +109,10 @@ The `landfire` module facilitates a data query of from the LANDFIRE database [@l
 `duet-tools` enables the programmatic management and modification of DUET simulation inputs and outputs.
 By allowing for the calibration of fuel values while retaining DUET's spatial predictions, the package provides a path for realistic and locally-accurate surface fuel representations for next-generation fire behavior modeling.
 The package streamlines interactions with idiosyncratic data structures, facilitating integration of DUET with fuel modeling platforms like FastFuels [@marcozzi_fastfuels_2025] and aiding with data visualization, analysis, and communication of results.
+
+# Figures
+
+![Caption for example figure.\label{fig:1}](figures-data/Plots/figure1.jpg)
 
 # Acknowledgements
 
