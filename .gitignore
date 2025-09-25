@@ -132,6 +132,7 @@ dmypy.json
 *.code-workspace
 .vscode
 .idea
+*.Rproj
 
 # Development
 dev/
@@ -149,5 +150,14 @@ flattrees.dat
 canopy.dat
 FIA_FastFuels_fin_fulllist_populated.txt
 
+# Paper
+figures-data/*
+!figures-data/surface_rhof_layered.dat
+!figures-data/surface_moist_layered.dat
+!figures-data/surface_depth_layered.dat
+!figures-data/duet.in
+!figures-data/Plots
+
 # macOS
 .DS_Store
+.Rproj.user

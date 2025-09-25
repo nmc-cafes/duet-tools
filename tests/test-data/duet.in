@@ -1,0 +1,10 @@
+234  ! number of cells in x direction
+345  ! number of cells in y direction
+30  ! number of cells in z direction
+2.0  ! cell size in x direction (in meters)
+2.0  ! cell size in y direction (in meters)
+1.0  ! cell size in z direction (in meters)
+47  ! random number seed
+225  ! wind direction (in degrees)
+359.0  ! wind direction variability (in degrees)
+5  ! duration of simulation (in years)
