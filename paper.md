@@ -33,7 +33,7 @@ By simplifying these tasks, `duet-tools` allows modelers and managers to more ea
 
 # Statement of need
 
-Physics-based fire behavior models, such as FIRETEC or QUIC-Fire, take in relatively fine-scale (< 4 m<sup>3</sup>) inputs describing fine fuel density, size, moisture, and height.
+Physics-based fire behavior models, such as FIRETEC or QUIC-Fire, take in relatively fine-scale (< 4 m^3^) inputs describing fine fuel density, size, moisture, and height.
 In forested landscapes, modeling the distribution of fine fuels on the surface (*e.g.*, leaf litter, herbaceous fuels) is challenging because of their heterogeneity and the difficulty of observing them with survey tools such as airborne LiDAR.
 DUET presents a solution by simulating the spatial arrangement of leaf or needle drop based on tree crown dimensions and prevailing wind direction, placing grass where litter levels would not limit its growth.
 However, these simulations may not capture some essential elements of understory dynamics that vary geographically, such as decay rates, herbaceous fuel loading, or fuel moisture content.
