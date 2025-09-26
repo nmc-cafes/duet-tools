@@ -155,6 +155,7 @@ figures-data/*
 !figures-data/surface_rhof_layered.dat
 !figures-data/surface_moist_layered.dat
 !figures-data/surface_depth_layered.dat
+!figures-data/surface_species.dat
 !figures-data/duet.in
 !figures-data/Plots
 

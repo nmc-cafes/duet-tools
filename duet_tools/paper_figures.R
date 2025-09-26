@@ -92,8 +92,8 @@ total <- duet_df %>%
   geom_tile(aes(x=x,y=y,fill=loading)) +
   facet_grid(before_after~fuel_type) +
   scale_fill_scico(palette="managua",
-                   direction = 1,
-                   # limits = c(0,4),
+                   direction = -1,
+                   limits = c(0,5),
                    na.value = scico(palette = "managua",
                                     direction = -1,
                                     n=2)[2]) +
@@ -116,7 +116,7 @@ grass <- duet_df %>%
   geom_tile(aes(x=x,y=y,fill=loading)) +
   facet_grid(before_after~fuel_type) +
   scale_fill_scico(palette="managua",
-                   direction = 1,
+                   direction = -1,
                    # limits = c(0,4),
                    na.value = scico(palette = "managua",
                                     direction = -1,
@@ -186,7 +186,9 @@ deciduous <- duet_df %>%
         axis.ticks.y = element_blank())
 
 figure <- coniferous + deciduous + grass + total + plot_layout(nrow = 1) +
-  plot_annotation(title = bquote('Fine Fuel\nLoading (kg m'^-2*")"),
-                  tag_levels = 'A')
+  plot_annotation(caption = bquote('Fine Fuel Loading (kg m'^-2*")"),
+                  tag_levels = 'A',
+                  theme = theme(plot.caption = element_text(hjust=0.5, size=rel(1.2)))) &
+  theme(plot.tag.position = c(0,1))
 figure
-ggsave("paper_figure.jpg", figure, path = here("figures-data","Plots"), width=9, height=9*0.6)
+ggsave("figure1.jpg", figure, path = here("figures-data","Plots"), width=9, height=9*0.6)
