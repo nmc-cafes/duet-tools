@@ -133,6 +133,7 @@ dmypy.json
 .vscode
 .idea
 *.Rproj
+.Rhistory
 
 # Development
 dev/
