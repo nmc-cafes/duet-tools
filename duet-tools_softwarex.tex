@@ -4,6 +4,24 @@
 \usepackage{amssymb}
 \usepackage{hyperref}
 \usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{gray!5},
+    basicstyle=\ttfamily\small,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    keywordstyle=\color{blue},
+    commentstyle=\color{green!50!black},
+    stringstyle=\color{orange},
+    breaklines=true,
+    captionpos=b,
+}
+\lstset{style=mystyle}
+
+
 \setlength{\parindent}{0pt}
 \journal{SoftwareX}
 
@@ -159,13 +177,13 @@ Full documentation, example scripts, and issue tracking are hosted on GitHub.
 
 The use of \texttt{duet-tools} is contingent upon the user possessing the results of a DUET simulation.
 Most often they will exist alongside a DUET input file.
-A common workflow will begin by creating a \texttt{DuetRun} object using \texttt{import_duet()}, which derives DUET data dimensions from the \texttt{duet.in} input file.
-If the input file is not present, but the data dimensions are known, the user can alternatively specify \texttt{import_duet_manual()}.
+A common workflow will begin by creating a \texttt{DuetRun} object using \texttt{import\_duet()}, which derives DUET data dimensions from the \texttt{duet.in} input file.
+If the input file is not present, but the data dimensions are known, the user can alternatively specify \texttt{import\_duet\_manual()}.
 Next, targets may be assigned using either of the two available calibration methods, and subsequently set to the desired fuel parameter(s).
 Once targets for each desired fuel parameter have been specified, the \texttt{calibrate()} function applies the calibration methods accordingly.
-A simple example of this process is shown in Listing 1 below.
+A simple example of this process is shown in Listing~\ref{lst:example} below.
 
-\begin{verbatim}
+\begin{lstlisting}[language=Python, caption={Example of a typical workflow using \texttt{duet-tools}, including importing a DUET run, setting calibration targets, calibrating fuel parameter values, and exporting to QUIC-Fire fuel arrays.}, label={lst:example}]
 # Import DUET outputs
 duet_run = import_duet(directory=duet_path)
 
@@ -187,16 +205,17 @@ calibrated_duet = calibrate(duet_run=duet_run, fuel_parameter_targets=loading_ta
 
 # Export to a QUIC-Fire input file
 calibrated_duet.to_quicfire(quicfire_path)
-\end{verbatim}
+\end{lstlisting}
 
-In the above example, the fuel loading parameter is calibrated using separately defined targets for each fuel type.
+In Listing~\ref{lst:example}, the fuel loading parameter is calibrated using separately defined targets for each fuel type.
 Grass and deciduous litter loading are calibrated using their respective target means and standard deviations, whereas coniferous loading is calibrated based on a target value range.
 Figure 1 shows how each calibration shifts the magnitudes of fuel loading values for each fuel type, while retaining the relative relationships between values.
 In this example, coniferous litter and grass fuel loading have been calibrated to reflect lower loading than was predicted by DUET, whereas deciduous litter loading was increased.
 After these calibrations, overall loading was decreased, but with patterns corresponding to the modifications of the individual fuel types.
 The total litter loading is available to be exported as an input file to QUIC-Fire, or as a NumPy array for other applications.
 
-Figure~\ref{fig:figure1} illustrates DUET calibration.The top row shows original DUET outputs for each fuel type, and the bottom row shows the calibrated results based on user-specified targets.
+Figure~\ref{fig:figure1} illustrates DUET calibration performed in Listing~\ref{lst:example}.
+The top row shows original DUET outputs for each fuel type, and the bottom row shows the calibrated results based on user-specified targets.
 
 \begin{figure}[h!]
 \centering
