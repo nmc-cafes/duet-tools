@@ -14,14 +14,18 @@
 \title{duet-tools: A Python package for interacting with the DUET program}
 
 \author[label1]{Niko J. Tutland\corref{cor1}}
-\ead{niko.tutland@nmc-cafes.org}
-\address[label1]{New Mexico Consortium, Center for Applied Fire and Ecosystem Sciences, Los Alamos, NM, USA}
+\ead{ntutland@gmail.com}
+\address[label1]{New Mexico Consortium, Center for Applied Fire and Ecosystem Science, Los Alamos, NM, USA}
 \cortext[cor1]{Corresponding author}
 
 \begin{abstract}
-Fuel modeling is a key avenue for understanding dynamics of fire-vegetation interactions across landscapes. Three-dimensional (3D) fuel models are used as inputs for fire behavior models to develop strategies for prescribed fire application and wildfire risk assessment and mitigation. Distribution of Understory using Elliptical Transport (DUET) is a recently developed program for creating surface fuel inputs for 3D fuel models. DUET simulates litter fall from 3D tree canopy inputs and grass growth, producing spatially heterogeneous estimates of fine fuel distribution and characteristics in forested domains. 
-
-Here we introduce \texttt{duet-tools}, a Python package that streamlines the process for creating DUET simulation input files and calibrating the values in DUET output files. The package handles two primary aspects of the DUET workflow: (1) programmatic creation and management of the DUET input file with validation and documentation, and (2) calibration of fine fuel outputs towards values provided by online data sources or directly from the user. By simplifying these tasks, \texttt{duet-tools} allows modelers and managers to more easily interact with the DUET program while incorporating locally accurate fuels data.
+Fuel modeling is a key avenue for understanding dynamics of fire-vegetation interactions across landscapes.
+Three-dimensional (3D) fuel models are used as inputs for fire behavior models to develop strategies for prescribed fire application and wildfire risk assessment and mitigation.
+Distribution of Understory using Elliptical Transport (DUET) is a recently developed program for creating surface fuel inputs for 3D fuel models.
+DUET simulates litter fall from 3D tree canopy inputs and grass growth, producing spatially heterogeneous estimates of fine fuel distribution and characteristics in forested domains.
+Here we introduce \texttt{duet-tools}, a Python package that streamlines the process for creating DUET simulation input files and calibrating the values in DUET output files.
+The package handles two primary aspects of the DUET workflow: (1) programmatic creation and management of the DUET input file with validation and documentation, and (2) calibration of fine fuel outputs towards values provided by online data sources or directly from the user.
+By simplifying these tasks, \texttt{duet-tools} allows modelers and managers to more easily interact with the DUET program while incorporating locally accurate fuels data.
 \end{abstract}
 
 \begin{keyword}
@@ -36,7 +40,7 @@ Python \sep fuel modeling \sep understory \sep fire modeling \sep simulation \se
 \hline
 \textbf{Nr.} & \textbf{Code metadata description} & \textbf{Metadata} \\
 \hline
-C1 & Current code version & v1.0.0 \\
+C1 & Current code version & v1.0.1 \\
 \hline
 C2 & Permanent link to code/repository used for this code version & \url{https://github.com/nmc-cafes/duet-tools} \\
 \hline
@@ -46,44 +50,121 @@ C4 & Legal Code License & MIT License \\
 \hline
 C5 & Code versioning system used & git \\
 \hline
-C6 & Software code languages, tools, and services used & Python (NumPy, xarray, requests) \\
+C6 & Software code languages, tools, and services used & Python (NumPy, pandas, rasterio, landfire) \\
 \hline
 C7 & Compilation requirements, operating environments \& dependencies & Python $\geq$ 3.9; dependencies installed via pip \\
 \hline
 C8 & Link to developer documentation/manual & \url{https://nmc-cafes.github.io/duet-tools/} \\
 \hline
-C9 & Support email for questions & niko.tutland@nmc-cafes.org \\
+C9 & Support email for questions & ntutland@gmail.com \\
 \hline
 \end{tabular}
 \caption{Code metadata}
-\label{codeMetadata} 
+\label{codeMetadata}
 \end{table}
 
 \section{Motivation and significance}
-Physics-based fire behavior models, such as FIRETEC or QUIC-Fire, take in relatively fine-scale (< 4 m$^3$) inputs describing fine fuel density, size, moisture, and height. In forested landscapes, modeling the distribution of fine fuels on the surface (e.g., leaf litter, herbaceous fuels) is challenging because of their heterogeneity and the difficulty of observing them with survey tools such as airborne LiDAR. DUET presents a solution by simulating the spatial arrangement of leaf or needle drop based on tree crown dimensions and prevailing wind direction, placing grass where litter levels would not limit its growth.
+In landscapes across North America, wildland fire is a critical driver of ecosystem processes that can both maintain and disturb habitats \cite{keeley_ecological_2009}.
+Modeling wildland fire behavior is a key tool for planning land management practices like prescribed burning, where complexities in fire-atmospheric interactions are mediated by heterogeneous, three-dimensional (3D) fuel structures.
+Physics-based fire behavior models, such as FIRETEC \cite{linn_studying_2002} or QUIC-Fire \cite{linn_quic-fire_2020}, simulate fire behavior in 3D, but take in relatively fine-scale (\textless 4 m$^3$) inputs describing fine fuel density, size, moisture, and height.
+In forested landscapes, modeling the distribution of fine fuels on the surface (e.g., leaf litter, herbaceous fuels) is challenging at these scales because of their heterogeneity and the difficulty of observing them with survey tools such as airborne LiDAR.
 
-However, these simulations may not capture some essential elements of understory dynamics that vary geographically, such as decay rates, herbaceous fuel loading, or fuel moisture content. Thus, users of DUET may wish to modify outputs of the simulations, differentially shifting the magnitudes of loading, height, and/or moisture values based on field-measured values, expert opinions, or broad-scale datasets, without altering the spatial distributions predicted by DUET. To date, no standardized tool exists for managing the inputs and outputs of DUET simulations to parameterize realistic, place-based 3D fire behavior simulations.
+The Distribution of Understory using Elliptical Transport (DUET) program \cite{mcdanold_duet_2023} presents a solution by simulating the spatial arrangement of leaf or needle drop based on tree crown dimensions and prevailing wind direction, placing grass where litter levels would not limit its growth.
+However, these simulations may not capture some essential elements of understory dynamics that vary geographically, such as decay rates, herbaceous fuel loading, or fuel moisture content.
+Thus, users of DUET may wish to modify outputs of the simulations, differentially shifting the magnitudes of loading, height, and/or moisture values based on field-measured values, expert opinions, or broad-scale datasets, without altering the spatial distributions predicted by DUET.
+Despite the potential for DUET to be used to improve 3D fuel modeling in forested landscapes, no standardized tool yet exists for managing the inputs and outputs of DUET simulations to parameterize realistic, place-based 3D fire behavior simulations.
 
-\texttt{duet-tools} addresses these needs by providing: (1) a simple, validated interface for creating, reading, and modifying DUET input files; (2) intuitive management of DUET output arrays; (3) built-in functions for calibration of fuel elements; and (4) comprehensive documentation with how-to guides and example scripts.
+Here, we introduce the \texttt{duet-tools} Python package, which addresses these needs by providing: (1) a simple, validated interface for creating, reading, and modifying DUET input files; (2) intuitive management of DUET output arrays; (3) built-in functions for calibration of fuel elements; and (4) comprehensive documentation with how-to guides and example scripts.
 
 \section{Software description}
 
 \subsection{Software architecture}
-\texttt{duet-tools} is implemented in Python using a modular design. Functions are applied to two main classes representing the package’s functionalities:
-\begin{itemize}
-\item \textbf{InputFile class:} manages DUET input files by loading, creating, and writing them with validation.
-\item \textbf{DuetRun class:} organizes DUET outputs, enabling calibration, format conversion, and export to FIRETEC or QUIC-Fire formats.
-\end{itemize}
+\texttt{duet-tools} is implemented in Python using a modular design with a combination of functional and object-oriented features.
+Functions are applied to two main classes representing the package’s functionalities: (1) the \texttt{InputFile} class, which manages DUET input files by loading, creating, and writing them with validation; and (2) the \texttt{DuetRun} class, which organizes DUET outputs, enabling calibration, format conversion, and export to FIRETEC or QUIC-Fire formats.
+Typically, a DUET simulation will be run locally in a directory containing the DUET executable and a text file specifying simulation parameters called \texttt{duet.in}.
+The \texttt{InputFile} class represents the parameters in that file for easy programmatic interaction, and additionally provides the information for automatically importing the data outputs of a completed DUET simulation.
+These data outputs, which are stored in idiosyncratic data structures, can then be read and represented by a \textt{DuetRun} object.
+
+Once the DUET simulation outputs are imported, \texttt{duet-tools} offers flexible methods for modifying or "calibrating" the outputs.
+Target values and calibration methods for the magnitudes of DUET data can be defined, assigned to various fuel types, and applied differentially based on the specific needs of the user.
+By following the general workflow of assigning targets, setting those targets for fuel parameters, then calibrating a \texttt{DuetRun} object, a user can incorporate local data or expert knowledge into their DUET simulations.
+The resulting data arrays are represented in standard NumPy \cite{harris2020array} formats, which can then be processed manually by the user or conveniently exported to data formats accepted by QUIC-Fire or FIRETEC.
 
 \subsection{Software functionalities}
-The package consists of several modules:
-\begin{itemize}
-\item \textbf{Inputs module:} facilitates loading, modifying, and writing validated DUET input files.
-\item \textbf{Calibration module:} provides methods for shifting or scaling DUET output values based on target ranges or distributions.
-\item \textbf{Landfire module:} enables calibration using LANDFIRE fuels data obtained through the \texttt{landfire} Python package.
-\end{itemize}
+The package consists of several modules, three of which we highlight here: (1) \texttt{inputs}, (2) \texttt{calibration}, and (3) \texttt{landfire}.
+The Inputs module facilitates loading, modifying, and writing validated DUET input files.
+The \texttt{from\_directory()} classmethod automatically creates a representation of \texttt{duet.in} which can be conveniently modified and written to file programmatically.
+Every parameter is validated upon write, meaning that any errors will be caught before the DUET simulation takes place.
+This involves type checking and ensuring inputs fall within accepted data ranges.
 
-\subsection{Sample code snippets analysis}
+The Calibration module comprises the bulk of the current functionalities of \texttt{duet-tools}, providing methods for shifting and/or scaling DUET output values based on target ranges or distributions.
+Field data on fuel properties such as fuel loading may be collected and summarized as a range of values or as a distribution with a center and spread.
+The Calibration module can perform shifting and scaling based on either type of target, and can differentially apply those methods for different fuel parameters and/or fuel types.
+Targets are assigned using the \texttt{assign\_targets()} function, which creates an object of class \texttt{Targets}.
+To assign targets based on a range of values, the "maxmin" method applies the following algorithm:
+
+\[
+x_i' =
+\begin{cases}
+\text{min\_target} + \dfrac{x_i - \min(x^+)}{\max(x^+) - \min(x^+)} \cdot (\text{max\_target} - \text{min\_target}), & x_i > 0 \\
+x_i, & x_i \le 0
+\end{cases}
+\]
+
+\text{where } x^+ = \{ x_i \in x \mid x_i > 0 \}.
+
+This shifts, then stretches or squeezes the values in the DUET output data array to match the provided range, without modifying the relative relationships between the data.
+Similarly, calibration based on mean and standard deviation is applied using the "meansd" argument and the following algorithm:
+
+\[
+x_i' =
+\begin{cases}
+\max\Bigg( 0, \ \text{mean\_target} + \dfrac{(x_i - \mu_x) \cdot \text{sd\_target}}{\sigma_x} \Bigg), & x_i > 0 \\
+x_i, & x_i \le 0
+\end{cases}
+\]
+
+\text{where } x^+ = \{ x_i \in x \mid x_i > 0 \}, \quad
+\mu_x = \text{mean}(x^+), \quad \sigma_x = \text{std}(x^+)
+
+The user may create one or multiple \texttt{Targets} objects which can then be set to different fuel parameters and fuel types.
+Briefly, a fuel parameter is one of the three required fuel inputs for the QUIC-Fire model: (1) fuel loading, (2) fuel moisture, or (3) fuel depth.
+A fuel type, on the other hand, corresponds a category of fuel simulated by DUET that each parameter may describe.
+DUET simulates litter fall from any species of tree represented in the DUET fuel grid input as well as growth of grass or other herbaceous plants.
+Upon creation of a \texttt{DuetRun} object, \texttt{duet-tools} groups together the litter from coniferous species, then the litter from deciduous species.
+This creates three main fuel types to which a \texttt{Targets} object may be set: (1) grass, (2) conifer litter, and (3) deciduous litter.
+Additionally, a target may be set for a combination of both litter types, or to all fuel types together.
+
+The targets corresponding to a single fuel parameter can be set for one or more fuel types using \texttt{set\_fuel\_parameter()}, which creates an object of class \textt{FuelParameter}.
+Once each desired fuel parameter has been set using targets for each desired fuel type, the \textt{DuetRun} object can be calibrated using the \texttt{calibrate()} function.
+Crucially, any combination of fuel type and fuel parameter can be assigned targets using either calibration method.
+In practice, this means there is a single function, \texttt{calibrate()}, that handles every possible calibration specification.
+The flexibility to mix and match methods, fuel types, and fuel parameters is facilitated by the use of a small set of keyword arguments in the \textt{assign\_targets()} and \textt{set\_fuel\_parameter()} functions.
+Running \texttt{calibrate()} on a \texttt{DuetRun} object produces a new \texttt{DuetRun} instance that stores the calibrated arrays.
+These arrays can be accessed or saved via the classmethods \texttt{to\_numpy()} and \texttt{to\_quicfire()}, the latter of which saves the calibrated arrays to a specified directory in the format expected by the QUIC-Fire model.
+
+The \texttt{landfire} module supports calibration by offering a convenient source for calibration targets.
+The main functionality of the module is the execution of a data query of from the LANDFIRE database \cite{la_puma_landfire_2023} to be used to calibrate DUET outputs.
+The module leverages the \textit{landfire} python package \cite{landfire_python_2023} to download fuels data, then converts those data to calibration targets.
+Fuels data themselves are derived from the Scott and Burgan 40 Fire Behavior Fuel Models \cite{scott_standard_2005}.
+Future package development is poised incorporate additional data sources from LANDFIRE, such as the Fuel Characteristics and Classification System \cite{ottmar_overview_2007}.
+
+\section{Illustrative examples}
+
+The main functionalities of \texttt{duet-tools} package are compatible with Python version 3.10+ and can be installed using PyPI.
+Since the \texttt{landfire} module requires dependencies that are only compatible with Python version 3.10, it is included as an optional package extra.
+Full documentation, example scripts, and issue tracking are hosted on GitHub.
+
+\subsection{DUET calibration workflow}
+
+The use of \texttt{duet-tools} is contingent upon the user possessing the results of a DUET simulation.
+Most often they will exist alongside a DUET input file.
+A common workflow will begin by creating a \texttt{DuetRun} object using \texttt{import_duet()}, which derives DUET data dimensions from the \texttt{duet.in} input file.
+If the input file is not present, but the data dimensions are known, the user can alternatively specify \texttt{import_duet_manual()}.
+Next, targets may be assigned using either of the two available calibration methods, and subsequently set to the desired fuel parameter(s).
+Once targets for each desired fuel parameter have been specified, the \texttt{calibrate()} function applies the calibration methods accordingly.
+A simple example of this process is shown in Listing 1 below.
+
 \begin{verbatim}
 # Import DUET outputs
 duet_run = import_duet(directory=duet_path)
@@ -103,10 +184,19 @@ loading_targets = set_fuel_parameter(
 
 # Calibrate the DUET run
 calibrated_duet = calibrate(duet_run=duet_run, fuel_parameter_targets=loading_targets)
+
+# Export to a QUIC-Fire input file
+calibrated_duet.to_quicfire(quicfire_path)
 \end{verbatim}
 
-\section{Illustrative examples}
-Figure~\ref{fig:figure1} illustrates DUET calibration. The top row shows original DUET outputs for each fuel type, and the bottom row shows the calibrated results based on user-specified targets.
+In the above example, the fuel loading parameter is calibrated using separately defined targets for each fuel type.
+Grass and deciduous litter loading are calibrated using their respective target means and standard deviations, whereas coniferous loading is calibrated based on a target value range.
+Figure 1 shows how each calibration shifts the magnitudes of fuel loading values for each fuel type, while retaining the relative relationships between values.
+In this example, coniferous litter and grass fuel loading have been calibrated to reflect lower loading than was predicted by DUET, whereas deciduous litter loading was increased.
+After these calibrations, overall loading was decreased, but with patterns corresponding to the modifications of the individual fuel types.
+The total litter loading is available to be exported as an input file to QUIC-Fire, or as a NumPy array for other applications.
+
+Figure~\ref{fig:figure1} illustrates DUET calibration.The top row shows original DUET outputs for each fuel type, and the bottom row shows the calibrated results based on user-specified targets.
 
 \begin{figure}[h!]
 \centering
@@ -116,13 +206,33 @@ Figure~\ref{fig:figure1} illustrates DUET calibration. The top row shows origina
 \end{figure}
 
 \section{Impact}
-\texttt{duet-tools} enables programmatic management and modification of DUET simulation inputs and outputs. By allowing for calibration of fuel values while retaining DUET’s spatial predictions, the package provides realistic and locally accurate surface fuel representations for next-generation fire behavior modeling. It streamlines DUET data handling, improves reproducibility, and broadens DUET’s application in simulation and management contexts.
+
+Modeling of wildland fire is an integral aspect of land management planning \cite{drury_interagency_2016}, disaster mitigation \cite{staley_updated_2016}, and species conservation \cite{lucash_managing_2022} that relies on accurate descriptions of wildland vegetation \cite{loudermilk_vegetations_2022}.
+In particular, prescribed burning is an integral management practice for forests across the U.S. \cite{ryan_prescribed_2013} that requires prioritization, implementation and incident planning, and practitioner training.
+For all of these purposes, fire modeling that accounts for 3D fuel structures, topography, and dynamic winds is poised to become an increasingly vital component for planning prescribed fire in high-priority lanscapes \cite{parsons_going_2013, hiers_prescribed_2020}.
+Simulating realistic fire behavior using tools like QUIC-Fire and FIRETEC requires an understanding of the heterogeneity of fuel structures on a landscape \cite{bonner_forest_2025, parsons_linking_2011}, but that heterogeneity is difficult to characterize.
+Data fusion approaches that combines local data, broad-scale mapping, and ecological modeling can provide more realistic characterizations \cite{marcozzi_fastfuels_2025, tutland_representing_2025}.
+By facilitating the fusion of modeled ecological processes from DUET, satellite-based gridded data from LANDFIRE, and direct input from users, \texttt{duet-tools} offers one of the first such approaches for surface fuel modeling.
+
+Though the utility of fine-scale, data-driven fire behavior modeling is undeniable, model access, computational weight, and fuel parameterization stand as barriers to operational use \cite{mell_firetec_2017}.
+\texttt{duet-tools} helps ease the burden of fuel parameterization by providing a simple and convenient tool for harnessing a fuel modeling software that may otherwise be under-utilized.
+By enabling the programmatic management and modification of DUET inputs and outputs, \texttt{duet-tools} has already allowed it to be incorporated into the most robust 3D fuel modeling platform to date, FastFuels \cite{marcozzi_fastfuels_2025}.
+As a national-scale data platform, FastFuels' coverage includes a wide variety of ecosystems, fuel types, and climate zones which can have vastly different litter decay rates \cite{blair_decay_1990} and herbaceous growth patterns \cite{reich_fire_2001}, or may experience a varity of management actions that may modify surface fuels.
+\texttt{duet-tools} provides a key mechanism for accounting for these differences by scaling DUET's predictions to local data inputs, without compromising the spatial heterogeneity predictions that are central to DUET's utility.
+
+As the science of wildland fire management continues to expand its toolkit of computing technologies, tools and frameworks for harmonizing fuel data across scales are becoming more widespread \cite{roten_truetrees_2023, moreno_visualization_2023, tutland_representing_2025}.
+The continued development of \texttt{duet-tools} can help it join the ranks as way to facilitate this goal.
+As fuel structures and fire dynamics become more uncertain in a changing climate \cite{davis_fire-catalyzed_2020, coop_wildfire-driven_2020, wion_multidecadal_2024}, the combination of DUET and \texttt{duet-tools} can help capture the fine-scale, local fuel dynamics that are essential for wildland fire modeling.
 
 \section{Conclusions}
-\texttt{duet-tools} bridges a key usability gap between DUET and downstream fire behavior models. It simplifies DUET file management, enables automated calibration against data sources, and promotes transparent and reproducible workflows for surface fuel modeling.
+\texttt{duet-tools} bridges a key usability gap between DUET and downstream fire behavior models.
+It simplifies DUET file management, enables automated calibration against data sources, and promotes transparent and reproducible workflows for surface fuel modeling.
 
 \section*{Acknowledgements}
-Many thanks to Jenna McDanold for the introduction and continued development of the DUET program. Gratitude to Anthony Marcozzi, Scott Pokswinski, and the NMC CAFES team for their support. Special thanks to Rachel Loehman for guidance and encouragement. Supported by U.S. Geological Survey grant XXXXXXXXXX.
+Many thanks to Jenna McDanold for the introduction and continued development of the DUET program.
+I am also grateful for the guidance and mentorship from Anthony Marcozzi, as well as the support from Scott Pokswinski and the rest of the NMC CAFES team.
+Special thanks to Rachel Loehman for encouraging and supporting the development of this tool.
+Funding for this project is provided by the Robert T. Stafford Disaster Relief and Emergency Assistance Act (42 U.S.C. 5121 et seq.) and supplemental funding acts for Federal disaster relief activities via the U.S. Geological Survey.
 
 \bibliographystyle{elsarticle-num}
 \bibliography{paper}
