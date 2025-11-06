@@ -159,6 +159,7 @@ figures-data/*
 !figures-data/surface_species.dat
 !figures-data/duet.in
 !figures-data/Plots
+*.docx
 
 # macOS
 .DS_Store
