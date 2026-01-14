@@ -71,9 +71,9 @@ C5 & Code versioning system used & git \\
 \hline
 C6 & Software code languages, tools, and services used & Python (NumPy, pandas, rasterio, landfire) \\
 \hline
-C7 & Compilation requirements, operating environments \& dependencies & Python $\geq$ 3.10; dependencies installed via pip \\
+C7 & Compilation requirements, operating environments \& dependencies & Microsft Windows, Linux; Python $\geq$ 3.10; dependencies installed via pip \\
 \hline
-C8 & Link to developer documentation/manual & \url{https://nmc-cafes.github.io/duet-tools/} \\
+C8 & Link to developer documentation/manual & Full documentation, how-to guides, example scripts, and issue tracking: \url{https://nmc-cafes.github.io/duet-tools/} \\
 \hline
 C9 & Support email for questions & ntutland@gmail.com \\
 \hline
@@ -130,7 +130,7 @@ x_i, & x_i \le 0
 \end{cases}
 \]
 
-\text{where } $ x^+ = \{ x_i \in x \mid x_i > 0 \}. $
+\text{where } $ x^+ = \{ x_i \in x \mid x_i > 0 \}. $\newline
 
 This shifts, then stretches or squeezes the values in the DUET output data array to match the provided range, without modifying the relative relationships between the data.
 Similarly, calibration based on mean and standard deviation is applied using the "meansd" argument and the following algorithm:
@@ -144,7 +144,7 @@ x_i, & x_i \le 0
 \]
 
 \text{where } $ x^+ = \{ x_i \in x \mid x_i > 0 \}, \quad
-\mu_x = \text{mean}(x^+), \quad \sigma_x = \text{std}(x^+) $
+\mu_x = \text{mean}(x^+), \quad \sigma_x = \text{std}(x^+) $\newline
 
 The user may create one or multiple \texttt{Targets} objects which can then be set to different fuel parameters and fuel types.
 Briefly, a fuel parameter is one of the three required fuel inputs for the QUIC-Fire model: (1) fuel loading, (2) fuel moisture, or (3) fuel depth.
@@ -172,7 +172,7 @@ Future package development is poised incorporate additional data sources from LA
 
 The main functionalities of \texttt{duet-tools} package are compatible with Python version 3.10+ and can be installed using PyPI.
 Since the \texttt{landfire} module requires dependencies that are only compatible with Python version 3.10, it is included as an optional package extra.
-Full documentation, example scripts, and issue tracking are hosted on GitHub.
+Full documentation, how-to guides, example scripts, and issue tracking are hosted on GitHub.
 
 \subsection{DUET calibration workflow}
 The use of \texttt{duet-tools} is contingent upon the user possessing the results of a DUET simulation.
@@ -228,7 +228,7 @@ The top row shows original DUET outputs for each fuel type, and the bottom row s
 
 Modeling of wildland fire is an integral aspect of land management planning \cite{drury_interagency_2016}, disaster mitigation \cite{staley_updated_2016}, and species conservation \cite{lucash_managing_2022} that relies on accurate descriptions of wildland vegetation \cite{loudermilk_vegetations_2022}.
 In particular, prescribed burning is an integral management practice for forests across the U.S. \cite{ryan_prescribed_2013} that requires prioritization, implementation and incident planning, and practitioner training.
-For all of these purposes, fire modeling that accounts for 3D fuel structures, topography, and dynamic winds is poised to become an increasingly vital component for planning prescribed fire in high-priority lanscapes \cite{parsons_going_2013, hiers_prescribed_2020}.
+For all of these purposes, fire modeling that accounts for 3D fuel structures, topography, and dynamic winds is poised to become an increasingly vital component for planning prescribed fire in high-priority landscapes \cite{parsons_going_2013, hiers_prescribed_2020}.
 Simulating realistic fire behavior using tools like QUIC-Fire and FIRETEC requires an understanding of the heterogeneity of fuel structures on a landscape \cite{bonner_forest_2025, parsons_linking_2011}, but that heterogeneity is difficult to characterize.
 Data fusion approaches that combines local data, broad-scale mapping, and ecological modeling can provide more realistic characterizations \cite{marcozzi_fastfuels_2025, tutland_representing_2025}.
 By facilitating the fusion of modeled ecological processes from DUET, satellite-based gridded data from LANDFIRE, and direct input from users, \texttt{duet-tools} offers one of the first such approaches for surface fuel modeling.\newline
@@ -236,7 +236,7 @@ By facilitating the fusion of modeled ecological processes from DUET, satellite-
 Though the utility of fine-scale, data-driven fire behavior modeling is undeniable, model access, computational weight, and fuel parameterization stand as barriers to operational use \cite{mell_firetec_2017}.
 \texttt{duet-tools} helps ease the burden of fuel parameterization by providing a simple and convenient tool for harnessing a fuel modeling software that may otherwise be under-utilized.
 By enabling the programmatic management and modification of DUET inputs and outputs, \texttt{duet-tools} has already allowed it to be incorporated into the most robust 3D fuel modeling platform to date, FastFuels \cite{marcozzi_fastfuels_2025}.
-As a national-scale data platform, FastFuels' coverage includes a wide variety of ecosystems, fuel types, and climate zones which can have vastly different litter decay rates \cite{blair_decay_1990} and herbaceous growth patterns \cite{reich_fire_2001}, or may experience a varity of management actions that may modify surface fuels.
+As a national-scale data platform, FastFuels' coverage includes a wide variety of ecosystems, fuel types, and climate zones which can have vastly different litter decay rates \cite{blair_decay_1990} and herbaceous growth patterns \cite{reich_fire_2001}, or may experience a variety of management actions that may modify surface fuels.
 \texttt{duet-tools} provides a key mechanism for accounting for these differences by scaling DUET's predictions to local data inputs, without compromising the spatial heterogeneity predictions that are central to DUET's utility.\newline
 
 As the science of wildland fire management continues to expand its toolkit of computing technologies, tools and frameworks for harmonizing fuel data across scales are becoming more widespread \cite{roten_truetrees_2023, moreno_visualization_2023, tutland_representing_2025}.
