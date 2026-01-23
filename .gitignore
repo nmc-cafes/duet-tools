@@ -158,7 +158,7 @@ figures-data/*
 !figures-data/surface_depth_layered.dat
 !figures-data/surface_species.dat
 !figures-data/duet.in
-!figures-data/Plots
+!figures-data/Plots/*
 *.docx
 
 # macOS
