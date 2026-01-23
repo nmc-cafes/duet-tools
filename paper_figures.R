@@ -5,12 +5,12 @@ library(tidyterra)
 library(scico)
 library(patchwork)
 
-arr_to_rst <- function(dir, name, crop_ext = NULL){
+arr_to_rst <- function(dir, name, crop_ext = NULL, n_row=908, n_col=1208){
   arr <- read.table(paste0(dir,"/",name,".txt"))
   mat <- as.matrix(arr)
-  rst <- rast(nrow = 908,
-              ncol = 1208,
-              ext = ext(c(0,1208,0,908)),
+  rst <- rast(nrow = n_row,
+              ncol = n_col,
+              ext = ext(c(0,n_col,0,n_row)),
               vals = mat,
               names = name)
   rst <- flip(rst, direction="vertical")
@@ -192,3 +192,165 @@ figure <- coniferous + deciduous + grass + total + plot_layout(nrow = 1) +
   theme(plot.tag.position = c(0,1))
 figure
 ggsave("figure1.jpg", figure, path = here("figures-data","Plots"), width=9, height=9*0.6)
+
+###############
+## Landfire
+
+# Import calibrated arrays
+landfire_calibrated <- arr_to_rst(here("figures-data","Arrays"), "calibrated_loading_landfire", crop_ext)
+landfire_litter <- arr_to_rst(here("figures-data","Arrays"), "calibrated_litter_landfire", crop_ext)
+landfire_grass <- arr_to_rst(here("figures-data","Arrays"),"calibrated_grass_landfire", crop_ext)
+
+cal_loading_lf_df <- rst_to_df(landfire_calibrated) %>% mutate(y = y-25)
+cal_litter_lf_df <- rst_to_df(landfire_litter) %>% mutate(y = y-25)
+cal_grass_lf_df <- rst_to_df(landfire_grass) %>% mutate(y = y-25)
+
+# Import landfire arrays that calibration targets were derived from
+landfire_loading <- arr_to_rst(here("figures-data","Arrays"), "landfire_loading", crop_ext=NULL, n_row=45, n_col=47)
+landfire_fueltype <- arr_to_rst(here("figures-data","Arrays"), "landfire_fueltype", crop_ext=NULL, n_row=45, n_col=47)
+
+landfire_loading_df <- rst_to_df(landfire_loading)
+landfire_fueltype_df <- rst_to_df(landfire_fueltype) %>%
+  select(-fuel_type) %>%
+  rename(fuel_type = loading) %>%
+  mutate(fuel_type = factor(fuel_type,
+                            levels = c(1,-1,0),
+                            labels = c("Grass","Litter","Both")))
+
+# Plot
+original_duet <- og_loading_df %>%
+  ggplot() +
+  geom_tile(aes(x=x,y=y,fill=loading)) +
+  scale_fill_scico(palette="managua",
+                   direction = -1,
+                   limits = c(0,5),
+                   na.value = scico(palette = "managua",
+                                    direction = -1,
+                                    n=2)[2]) +
+  scale_x_continuous(expand=c(0,0)) +
+  scale_y_continuous(expand=c(0,0)) +
+  coord_fixed() +
+  labs(y = "Y (m)",
+       x = "X (m)",
+       fill = bquote('Fine Fuel\nLoading (kg m'^-2*")")) +
+  theme_bw() +
+  theme(legend.position = 'right',
+        legend.title = element_blank())
+
+calibrated_loading <- cal_loading_lf_df %>%
+  ggplot() +
+  geom_tile(aes(x=x,y=y,fill=loading)) +
+  scale_fill_scico(palette="managua",
+                   direction = -1,
+                   limits = c(0,5),
+                   na.value = scico(palette = "managua",
+                                    direction = -1,
+                                    n=2)[2]) +
+  scale_x_continuous(expand=c(0,0)) +
+  scale_y_continuous(expand=c(0,0)) +
+  coord_fixed() +
+  labs(y = "Y (m)",
+       x = "X (m)",
+       fill = bquote('Fine Fuel\nLoading (kg m'^-2*")")) +
+  theme_bw() +
+  theme(legend.position = 'right',
+        legend.title = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())
+
+calibrated_litter <- cal_litter_lf_df %>%
+  ggplot() +
+  geom_tile(aes(x=x,y=y,fill=loading)) +
+  scale_fill_scico(palette="managua",
+                   direction = -1,
+                   limits = c(0,2),
+                   na.value = scico(palette = "managua",
+                                    direction = -1,
+                                    n=2)[2]) +
+  scale_x_continuous(expand=c(0,0)) +
+  scale_y_continuous(expand=c(0,0)) +
+  coord_fixed() +
+  labs(y = "Y (m)",
+       x = "X (m)",
+       fill = bquote('Fine Fuel\nLoading (kg m'^-2*")")) +
+  theme_bw() +
+  theme(legend.position = 'right',
+        legend.title = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())
+
+calibrated_grass <- cal_grass_lf_df %>%
+  ggplot() +
+  geom_tile(aes(x=x,y=y,fill=loading)) +
+  scale_fill_scico(palette="managua",
+                   direction = -1,
+                   limits = c(0,2),
+                   na.value = scico(palette = "managua",
+                                    direction = -1,
+                                    n=2)[2]) +
+  scale_x_continuous(expand=c(0,0)) +
+  scale_y_continuous(expand=c(0,0)) +
+  coord_fixed() +
+  labs(y = "Y (m)",
+       x = "X (m)",
+       fill = bquote('Fine Fuel\nLoading (kg m'^-2*")")) +
+  theme_bw() +
+  theme(legend.position = 'right',
+        legend.title = element_blank())
+
+landfire_targets <- landfire_loading_df %>%
+  ggplot() +
+  geom_tile(aes(x=x,y=y,fill=loading)) +
+  scale_fill_scico(palette="managua",
+                   direction = -1,
+                   limits = c(0,2),
+                   na.value = scico(palette = "managua",
+                                    direction = -1,
+                                    n=2)[2]) +
+  scale_x_continuous(expand=c(0,0)) +
+  scale_y_continuous(expand=c(0,0)) +
+  coord_fixed() +
+  labs(fill = bquote('Fine Fuel\nLoading (kg m'^-2*")")) +
+  theme_bw() +
+  theme(legend.position = 'none',
+        legend.title = element_blank(),
+        axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        panel.grid = element_blank())
+
+landfire_fueltypes <- landfire_fueltype_df %>%
+  ggplot() +
+  geom_tile(aes(x=x,y=y,fill=fuel_type)) +
+  scale_fill_manual(values = c("forestgreen","orange3","gray")) +
+  scale_x_continuous(expand=c(0,0)) +
+  scale_y_continuous(expand=c(0,0)) +
+  coord_fixed() +
+  labs(fill = "Fuel Type") +
+  theme_bw() +
+  theme(legend.position = 'bottom',
+        legend.title = element_blank(),
+        axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        panel.grid = element_blank())
+
+# Patchwork them together
+
+bottom_left <- original_duet
+bottom_right <- calibrated_loading
+bottom_panel <- bottom_left + bottom_right + plot_layout(guides = "collect")
+
+top_left <- (landfire_fueltypes + landfire_targets)
+top_right <- (calibrated_grass + calibrated_litter) + plot_layout(guides = "collect") & theme(legend.position = "right")
+top_panel <- (top_left | top_right)
+
+final_plot <- top_panel / bottom_panel + plot_layout(heights = c(1,3)) +
+  plot_annotation(caption = bquote('Fine Fuel Loading (kg m'^-2*")"),
+                  theme = theme(plot.caption = element_text(hjust=0.5, size=rel(1.2)))) &
+  theme(plot.tag.position = c(0,1))
+
+# Save to file and fix plot spacing externally
+ggsave("figure2_raw.jpg", final_plot, path = here("figures-data","Plots"), width=9, height=9)

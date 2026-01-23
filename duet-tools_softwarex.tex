@@ -183,7 +183,7 @@ Next, targets may be assigned using either of the two available calibration meth
 Once targets for each desired fuel parameter have been specified, the \texttt{calibrate()} function applies the calibration methods accordingly.
 A simple example of this process is shown in Listing~\ref{lst:example} below.\newline
 
-\begin{lstlisting}[language=Python, caption={Example of a typical workflow using \texttt{duet-tools}, including importing a DUET run, setting calibration targets, calibrating fuel parameter values, and exporting to QUIC-Fire fuel arrays.}, label={lst:example}]
+\begin{lstlisting}[language=Python, caption={Example of a typical workflow using \texttt{duet-tools}, including importing a DUET run, setting calibration targets, calibrating fuel parameter values, and exporting to QUIC-Fire fuel arrays.}, label={lst:example1}]
 # Import DUET outputs
 duet_run = import_duet(directory=duet_path)
 
@@ -207,7 +207,7 @@ calibrated_duet = calibrate(duet_run=duet_run, fuel_parameter_targets=loading_ta
 calibrated_duet.to_quicfire(quicfire_path)
 \end{lstlisting}
 
-In Listing~\ref{lst:example}, the fuel loading parameter is calibrated using separately defined targets for each fuel type.
+In Listing~\ref{lst:example1}, the fuel loading parameter is calibrated using separately defined targets for each fuel type.
 Grass and deciduous litter loading are calibrated using their respective target means and standard deviations, whereas coniferous loading is calibrated based on a target value range.
 Figure~\ref{fig:figure1} shows how each calibration shifts the magnitudes of fuel loading values for each fuel type, while retaining the relative relationships between values.
 In this example, coniferous litter and grass fuel loading have been calibrated to reflect lower loading than was predicted by DUET, whereas deciduous litter loading was increased.
@@ -219,6 +219,31 @@ The total litter loading is available to be exported as an input file to QUIC-Fi
 \includegraphics[width=0.9\linewidth]{figure1.jpg}
 \caption{Example of DUET calibration. The top row shows original fuel loading outputs from DUET for each fuel type; the bottom row shows calibrated results based on user-specified targets.}
 \label{fig:figure1}
+\end{figure}
+
+Fuel parameter targets may be assigned from LANDFIRE data in a similar fashion.
+Listing~\ref{lst:example2} shows the process of querying the LANDFIRE database to retrieve Scott and Burgan 40 Fuel Model data \cite{scott_standard_2005} for an area of interest.
+Spatial data defining an area of interest can be supplied as either a geojson or a polygon.
+For each fuel type (grass and/or litter; Fig.~\ref{fig:figure2}B), the values of the desired fuel parameters (Fig.~\ref{fig:figure2}C) are automatically assigned to a \texttt{Targets} object, which can then be used to differentially adjust DUET output values for those values (Fig.~\ref{fig:figure2}D-E).\newline
+
+\begin{lstlisting}[language=Python, caption={Example of DUET calibration using data from LANDFIRE \cite{la_puma_landfire_2023}}, label={lst:example2}]
+duet_run = import_duet(directory=duet_path)
+landfire_query = query_landfire(
+    area_of_interest=aoi_geojson, year=2019, directory=duet_path, input_epsg=4326
+)
+grass_loading_targets = assign_targets_from_sb40(landfire_query, "grass", "loading")
+litter_loading_targets = assign_targets_from_sb40(landfire_query, "litter", "loading")
+landfire_loading = set_loading(
+    grass=grass_loading_targets, litter=litter_loading_targets
+)
+calibrated_duet_landfire = calibrate(duet_run, landfire_loading)
+\end{lstlisting}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.9\linewidth]{figure2.jpg}
+\caption{Example of DUET calibration using Scott and Burgan 40 Fuel Model \cite{scott_standard_2005} data from the LANDFIRE database \cite{la_puma_landfire_2023}. Original DUET output values (A) are assigned fuel parameter targets from a provided area of interest based on the mapped fuel type (B-C). Values for grass (D) and tree litter (E) may be calibrated separately and combined to produce a calibrated DUET output (F).}
+\label{fig:figure2}
 \end{figure}
 
 \section{Impact}

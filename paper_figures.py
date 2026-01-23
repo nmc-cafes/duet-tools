@@ -122,7 +122,7 @@ sb40_params = pd.read_csv(sb40_params_path)
 sb40_dict = _get_sb40_fuel_params(sb40_params)
 sb40_arr = _get_sb40_arrays(landfire_arr, sb40_dict)
 
-_delete_intermediate_files(duet_path)
+# _delete_intermediate_files(duet_path)
 
 landfire_query = LandfireQuery(
     fuel_types=sb40_arr[0, :, :],
@@ -149,6 +149,7 @@ calibrated_litter_landfire = calibrated_duet_landfire.to_numpy("litter", "loadin
 calibrated_loading_landfire = calibrated_duet_landfire.to_numpy("integrated", "loading")
 
 np.savetxt(save_path / "landfire_loading.txt", landfire_query.loading)
+np.savetxt(save_path / "landfire_fueltype.txt", landfire_query.fuel_types)
 
 np.savetxt(save_path / "calibrated_loading_landfire.txt", calibrated_loading_landfire)
 np.savetxt(save_path / "calibrated_grass_landfire.txt", calibrated_grass_landfire)
