@@ -112,6 +112,7 @@ The resulting data arrays are represented in standard NumPy \cite{harris2020arra
 \subsection{Software functionalities}
 The package consists of several modules, three of which we highlight here: (1) \texttt{inputs}, (2) \texttt{calibration}, and (3) \texttt{landfire}.
 The Inputs module facilitates loading, modifying, and writing validated DUET input files.
+Input parameters for the DUET program include the 3D fuel array dimensions and resolution, the number of years to simulate, and information on prevailing winds: speed, direction, and variability.
 The \texttt{from\_directory()} classmethod automatically creates a representation of \texttt{duet.in} which can be conveniently modified and written to a file programmatically.
 Every parameter is validated upon write, meaning that any errors will be caught before the DUET simulation takes place.
 This involves type checking and ensuring inputs fall within accepted data ranges.\newline
