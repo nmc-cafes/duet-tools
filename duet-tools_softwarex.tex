@@ -228,15 +228,22 @@ Spatial data defining an area of interest can be supplied as either a geojson or
 For each fuel type (grass and/or litter; Fig.~\ref{fig:figure2}B), the values of the desired fuel parameters (Fig.~\ref{fig:figure2}C) are automatically assigned to a \texttt{Targets} object, which can then be used to differentially adjust DUET output values for those values (Fig.~\ref{fig:figure2}D-E).\newline
 
 \begin{lstlisting}[language=Python, caption={Example of DUET calibration using data from LANDFIRE \cite{la_puma_landfire_2023}}, label={lst:example2}]
+# Import DUET outputs
 duet_run = import_duet(directory=duet_path)
+
+# Query the LANDFIRE database
 landfire_query = query_landfire(
     area_of_interest=aoi_geojson, year=2019, directory=duet_path, input_epsg=4326
 )
+
+# Assign fuel targets from LANDFIRE query
 grass_loading_targets = assign_targets_from_sb40(landfire_query, "grass", "loading")
 litter_loading_targets = assign_targets_from_sb40(landfire_query, "litter", "loading")
 landfire_loading = set_loading(
     grass=grass_loading_targets, litter=litter_loading_targets
 )
+
+# Calibrate the DUET run
 calibrated_duet_landfire = calibrate(duet_run, landfire_loading)
 \end{lstlisting}
 
