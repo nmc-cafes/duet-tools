@@ -167,7 +167,7 @@ The \texttt{landfire} module supports calibration by offering a convenient sourc
 The main functionality of the module is the execution of a data query of from the LANDFIRE database \cite{la_puma_landfire_2023} to be used to calibrate DUET outputs.
 The module leverages the \textit{landfire} python package \cite{landfire_python_2023} to download fuels data, then converts those data to calibration targets.
 Fuels data themselves are derived from the Scott and Burgan 40 Fire Behavior Fuel Models \cite{scott_standard_2005}.
-Future package development is poised incorporate additional data sources from LANDFIRE, such as the Fuel Characteristics and Classification System \cite{ottmar_overview_2007}.
+Future package development is poised incorporate additional data sources from LANDFIRE, such as the Fuel Characteristics and Classification System (FCCS) \cite{ottmar_overview_2007}.
 
 \section{Illustrative examples}
 
@@ -262,6 +262,16 @@ As a national-scale data platform, FastFuels' coverage includes a wide variety o
 
 As the science of wildland fire management continues to expand its toolkit of computing technologies, tools and frameworks for harmonizing fuel data across scales are becoming more widespread \cite{roten_truetrees_2023, moreno_visualization_2023, tutland_representing_2025}.
 The continued development of \texttt{duet-tools} can help it join the ranks as a way to facilitate this goal, especially as fuel structures and fire dynamics become more uncertain in a changing climate \cite{davis_fire-catalyzed_2020, coop_wildfire-driven_2020, wion_multidecadal_2024}.
+
+\subsection{Limitations and Future Work}
+
+This article aims to introduce \texttt{duet-tools}, which is still in the early stages of its development.
+Currently, manipulation of DUET output files is limited to two simple calibration algorithms and 2-3 fuel types. 
+Future work should incorporate more complex and place-based calibration parameters, such as seasonality \cite{li_estimating_2025}, topography \cite{nyman_quantifying_2015}, and the addition of other types of surface fuel such as shrubs.
+Because local fuel data may not be available, further package development should focus on forging more connections to large geospatial datasets, including the expansion of the \texttt{landfire} module to access additional fuel layers, such as FCCS data \cite{ottmar_overview_2007}.
+Since these layers are generally compiled at a resolution of 20-30 m, the variability they describe is currently applied wholesale when calibrating the fine-scale variability simulated by DUET.
+Future package development could add the option to incorporate the broad-scale fuel heterogeneity described by broad-scale data while maintaining the fine-scale patterns predicted by DUET simulations.
+These improvements will help \texttt{duet-tools} play an integral role in streamlining the integration of DUET with fuels data platforms such as FastFuels \cite{marcozzi_fastfuels_2025}.
 
 \section{Conclusions}
 \texttt{duet-tools} bridges a key usability gap between DUET and downstream fire behavior models.
