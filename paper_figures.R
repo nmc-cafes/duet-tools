@@ -82,12 +82,12 @@ duet_df <- bind_rows(og_loading_df,
                                labels = c("Original", "Calibrated")),
          fuel_type = factor(fuel_type,
                             levels = c("loading","grass","coniferous","deciduous"),
-                            labels = c("Total\n","Grass/\nHerbaceous","Coniferous\nLitter","Deciduous\nLitter"))) %>%
+                            labels = c("Total","Grass/\nHerbaceous","Coniferous\nLitter","Deciduous\nLitter"))) %>%
   mutate(y = y-25)
 
 #### Plot
 total <- duet_df %>%
-  filter(fuel_type == "Total\n") %>%
+  filter(fuel_type == "Total") %>%
   ggplot() +
   geom_tile(aes(x=x,y=y,fill=loading)) +
   facet_grid(before_after~fuel_type) +
@@ -97,14 +97,16 @@ total <- duet_df %>%
                    na.value = scico(palette = "managua",
                                     direction = -1,
                                     n=2)[2]) +
-  scale_x_continuous(expand=c(0,0)) +
-  scale_y_continuous(expand=c(0,0)) +
+  scale_x_continuous(expand=c(0,0), breaks = c(25,50,75,100)) +
+  scale_y_continuous(expand=c(0,0), breaks = c(25,50,75,100)) +
   coord_fixed() +
   labs(y = "Y (m)",
        x = "X (m)",
        fill = bquote('Fine Fuel\nLoading (kg m'^-2*")")) +
   theme_bw() +
-  theme(legend.position = 'bottom',
+  theme(strip.background = element_rect(fill = NA,
+                                        color = NA),
+        legend.position = 'bottom',
         legend.title = element_blank(),
         axis.title.y = element_blank(),
         axis.text.y = element_blank(),
@@ -121,14 +123,16 @@ grass <- duet_df %>%
                    na.value = scico(palette = "managua",
                                     direction = -1,
                                     n=2)[2]) +
-  scale_x_continuous(expand=c(0,0)) +
-  scale_y_continuous(expand=c(0,0)) +
+  scale_x_continuous(expand=c(0,0), breaks = c(25,50,75,100)) +
+  scale_y_continuous(expand=c(0,0), breaks = c(25,50,75,100)) +
   coord_fixed() +
   labs(y = "Y (m)",
        x = "X (m)",
        fill = bquote('Fine Fuel\nLoading (kg m'^-2*")")) +
   theme_bw() +
-  theme(legend.position = 'bottom',
+  theme(strip.background = element_rect(fill = NA,
+                                        color = NA),
+        legend.position = 'bottom',
         strip.background.y = element_blank(),
         strip.text.y = element_blank(),
         legend.title = element_blank(),
@@ -147,14 +151,16 @@ coniferous <- duet_df %>%
                    na.value = scico(palette = "managua",
                                     direction = -1,
                                     n=2)[2]) +
-  scale_x_continuous(expand=c(0,0)) +
-  scale_y_continuous(expand=c(0,0)) +
+  scale_x_continuous(expand=c(0,0), breaks = c(25,50,75,100)) +
+  scale_y_continuous(expand=c(0,0), breaks = c(25,50,75,100)) +
   coord_fixed() +
   labs(y = "Y (m)",
        x = "X (m)",
        fill = bquote('Fine Fuel\nLoading (kg m'^-2*")")) +
   theme_bw() +
-  theme(legend.position = 'bottom',
+  theme(strip.background = element_rect(fill = NA,
+                                        color = NA),
+        legend.position = 'bottom',
         strip.background.y = element_blank(),
         strip.text.y = element_blank(),
         legend.title = element_blank())
@@ -170,14 +176,15 @@ deciduous <- duet_df %>%
                    na.value = scico(palette = "managua",
                                     direction = -1,
                                     n=2)[2]) +
-  scale_x_continuous(expand=c(0,0)) +
-  scale_y_continuous(expand=c(0,0)) +
+  scale_x_continuous(expand=c(0,0), breaks = c(25,50,75,100)) +
+  scale_y_continuous(expand=c(0,0), breaks = c(25,50,75,100)) +
   coord_fixed() +
   labs(y = "Y (m)",
        x = "X (m)",
        fill = bquote('Fine Fuel\nLoading (kg m'^-2*")")) +
   theme_bw() +
-  theme(legend.position = 'bottom',
+  theme(strip.background = element_rect(fill = NA,
+                                        color = NA),legend.position = 'bottom',
         legend.title = element_blank(),
         strip.background.y = element_blank(),
         strip.text.y = element_blank(),
@@ -187,9 +194,7 @@ deciduous <- duet_df %>%
 
 figure <- coniferous + deciduous + grass + total + plot_layout(nrow = 1) +
   plot_annotation(caption = bquote('Fine Fuel Loading (kg m'^-2*")"),
-                  tag_levels = 'A',
-                  theme = theme(plot.caption = element_text(hjust=0.5, size=rel(1.2)))) &
-  theme(plot.tag.position = c(0,1))
+                  theme = theme(plot.caption = element_text(hjust=0.5, size=rel(1.2))))
 figure
 ggsave("figure1.jpg", figure, path = here("figures-data","Plots"), width=9, height=9*0.6)
 
